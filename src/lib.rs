@@ -10,6 +10,15 @@
 // TODO: Write rejects to terminal
 // TODO: Write rejects to file
 
+pub mod diff;
+pub mod error;
+
+pub use diff::Diff;
+pub use diff::FileDiff;
+pub use diff::Hunk;
+pub use error::Error;
+pub use error::ErrorKind;
+
 pub fn add(left: usize, right: usize) -> usize {
     left + right
 }

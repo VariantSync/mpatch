@@ -1,0 +1,38 @@
+diff -Naur version-A/single.txt version-B/single.txt
+--- version-A/single.txt	2023-11-03 16:26:28.701847364 +0100
++++ version-B/single.txt	2023-11-03 16:26:37.168563729 +0100
+@@ -0,0 +1 @@
++ADDED
+\ No newline at end of file
+diff -Naur version-A/double_end.txt version-B/double_end.txt
+--- version-A/double_end.txt	2023-11-03 16:39:35.953263076 +0100
++++ version-B/double_end.txt	2023-11-03 16:40:12.500153951 +0100
+@@ -1,4 +1,3 @@
+ Line A
+ Line B
+-Line C
+-Line D
+\ No newline at end of file
++Line C
+\ No newline at end of file
+diff -Naur version-A/long.txt version-B/long.txt
+--- version-A/long.txt	2023-11-03 16:26:28.701847364 +0100
++++ version-B/long.txt	2023-11-03 16:26:37.168563729 +0100
+@@ -1,7 +1,7 @@
+ context 1
+ context 2
+ context 3
+-REMOVED
++ADDED
+ context 4
+ context 5
+ context 6
+@@ -23,7 +23,7 @@
+ context 1
+ context 2
+ context 3
+-REMOVED
++ADDED
+ context 4
+ context 5
+ context 6
