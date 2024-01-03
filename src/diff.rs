@@ -256,31 +256,26 @@ mod tests {
     }
 
     #[test]
-    fn PLACEHOLDER() {
-        todo!();
+    fn recognize_invalid_location_line_start() {
+        let location_line = "@ -1,7 +1,7 @@";
+        assert!(Hunk::parse_location_line(location_line).is_err());
     }
 
     #[test]
-    fn PLACEHOLDER() {
-        todo!();
+    fn recognize_invalid_location_line_end() {
+        let location_line = "@@ -1,7 +1,7 @";
+        assert!(Hunk::parse_location_line(location_line).is_err());
     }
 
     #[test]
-    fn PLACEHOLDER() {
-        todo!();
+    fn recognize_invalid_location_line_number() {
+        let location_line = "@@ -1,7 1,7 @@";
+        assert!(Hunk::parse_location_line(location_line).is_err());
     }
 
     #[test]
-    fn PLACEHOLDER() {
-        todo!();
-    }
-
-    #[test]
-    fn PLACEHOLDER() {
-        todo!();
-    }
-    #[test]
-    fn PLACEHOLDER() {
-        todo!();
+    fn recognize_invalid_location_line_comma() {
+        let location_line = "@@ -1,7 +1;7 @@";
+        assert!(Hunk::parse_location_line(location_line).is_err());
     }
 }
