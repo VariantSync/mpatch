@@ -1,4 +1,4 @@
-use crate::Error;
+use crate::{Error, ErrorKind};
 
 pub struct Diff {
     file_diffs: Vec<FileDiff>,
@@ -66,7 +66,46 @@ pub struct HunkLocation {
     hunk_length: usize,
 }
 
-pub enum HunkLine {
+#[derive(Debug)]
+pub struct HunkLine {
+    content: String,
+    line_type: LineType,
+}
+
+impl TryFrom<&str> for HunkLine {
+    type Error = Error;
+
+    fn try_from(content: &str) -> Result<Self, Self::Error> {
+        HunkLine::try_from(content.to_string())
+    }
+}
+
+impl TryFrom<String> for HunkLine {
+    type Error = Error;
+
+    fn try_from(content: String) -> Result<Self, Self::Error> {
+        if content.as_str() == "\\No newline at end of file" {
+            return Ok(HunkLine {
+                content,
+                line_type: LineType::EOF,
+            });
+        }
+        let line_type = if let Some(marker) = content.chars().nth(0) {
+            match marker {
+                '+' => LineType::Add,
+                '-' => LineType::Remove,
+                ' ' => LineType::Context,
+                _ => return Err(Error::new("invalid hunk line", ErrorKind::DiffParseError)),
+            }
+        } else {
+            return Err(Error::new("invalid hunk line", ErrorKind::DiffParseError));
+        };
+        Ok(HunkLine { content, line_type })
+    }
+}
+
+#[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Clone, Copy)]
+pub enum LineType {
     Context,
     Add,
     Remove,
@@ -87,33 +126,55 @@ pub struct TargetFile {
 
 #[cfg(test)]
 mod tests {
-    #[test]
-    fn PLACEHOLDER() {
-        todo!();
+    use crate::diff::LineType;
+
+    use super::HunkLine;
+
+    fn check_line_parsing(line: &str, expected_type: LineType) {
+        let hunk_line = HunkLine::try_from(line).unwrap();
+        assert_eq!(hunk_line.content, line);
+        assert_eq!(hunk_line.line_type, expected_type);
     }
 
     #[test]
-    fn PLACEHOLDER() {
-        todo!();
+    fn parse_context_line() {
+        let line = " unchanged code";
+        check_line_parsing(line, LineType::Context);
     }
 
     #[test]
-    fn PLACEHOLDER() {
-        todo!();
+    fn parse_add_line() {
+        let line = "+added code";
+        check_line_parsing(line, LineType::Add);
     }
 
     #[test]
-    fn PLACEHOLDER() {
-        todo!();
+    fn parse_remove_line() {
+        let line = "-removed code";
+        check_line_parsing(line, LineType::Remove);
     }
 
     #[test]
-    fn PLACEHOLDER() {
-        todo!();
+    fn parse_eof_line() {
+        let line = "\\No newline at end of file";
+        check_line_parsing(line, LineType::EOF);
     }
 
     #[test]
-    fn PLACEHOLDER() {
-        todo!();
+    fn recognize_invalid_line() {
+        let line = "Not a valid format";
+        assert!(HunkLine::try_from(line).is_err());
+    }
+
+    #[test]
+    fn recognize_invalid_line_eof() {
+        let line = "\\Not a valid line";
+        assert!(HunkLine::try_from(line).is_err());
+    }
+
+    #[test]
+    fn recognize_invalid_empty_line() {
+        let line = "";
+        assert!(HunkLine::try_from(line).is_err());
     }
 }
