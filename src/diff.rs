@@ -61,9 +61,76 @@ pub struct Hunk {
     lines: Vec<HunkLine>,
 }
 
+impl Hunk {
+    fn parse_location_line(line: &str) -> Result<(HunkLocation, HunkLocation), Error> {
+        if !line.starts_with("@@ ") || !line.ends_with(" @@") {
+            return Err(Error::new(
+                &format!("invalid hunk location: {line}"),
+                ErrorKind::DiffParseError,
+            ));
+        }
+        let mut hunk_locations: [Option<HunkLocation>; 2] = [None, None];
+
+        for (id, location) in line
+            .split_whitespace()
+            // Skip the leading "@@ "
+            .skip(1)
+            // Ignore the trailing " @@"
+            .take(2)
+            .enumerate()
+        {
+            hunk_locations[id] = Some(HunkLocation::try_from(location)?);
+        }
+
+        Ok((hunk_locations[0].unwrap(), hunk_locations[1].unwrap()))
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, PartialOrd, Eq, Ord)]
 pub struct HunkLocation {
     hunk_start: usize,
     hunk_length: usize,
+}
+
+impl HunkLocation {
+    fn new(hunk_start: usize, hunk_length: usize) -> HunkLocation {
+        HunkLocation {
+            hunk_start,
+            hunk_length,
+        }
+    }
+}
+
+impl TryFrom<&str> for HunkLocation {
+    type Error = Error;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        let error = || {
+            Err(Error::new(
+                &format!("invalid hunk location: {value}"),
+                ErrorKind::DiffParseError,
+            ))
+        };
+        if value.is_empty() {
+            return error();
+        }
+        if value.chars().nth(0).unwrap() != '-' && value.chars().nth(0).unwrap() != '+' {
+            return error();
+        }
+
+        let mut numbers = vec![];
+        for number in value[1..].split(",") {
+            match usize::from_str_radix(number, 10) {
+                Ok(number) => numbers.push(number),
+                Err(_) => return error(),
+            }
+        }
+
+        Ok(HunkLocation {
+            hunk_start: numbers[0],
+            hunk_length: numbers[1],
+        })
+    }
 }
 
 #[derive(Debug)]
@@ -126,7 +193,7 @@ pub struct TargetFile {
 
 #[cfg(test)]
 mod tests {
-    use crate::diff::LineType;
+    use crate::{diff::LineType, Hunk};
 
     use super::HunkLine;
 
@@ -176,5 +243,44 @@ mod tests {
     fn recognize_invalid_empty_line() {
         let line = "";
         assert!(HunkLine::try_from(line).is_err());
+    }
+
+    #[test]
+    fn parse_valid_location_line() {
+        let location_line = "@@ -1,7 +1,7 @@";
+        let (source_location, target_location) = Hunk::parse_location_line(location_line).unwrap();
+        assert_eq!(source_location.hunk_start, 1);
+        assert_eq!(source_location.hunk_length, 7);
+        assert_eq!(target_location.hunk_start, 1);
+        assert_eq!(source_location.hunk_length, 7);
+    }
+
+    #[test]
+    fn PLACEHOLDER() {
+        todo!();
+    }
+
+    #[test]
+    fn PLACEHOLDER() {
+        todo!();
+    }
+
+    #[test]
+    fn PLACEHOLDER() {
+        todo!();
+    }
+
+    #[test]
+    fn PLACEHOLDER() {
+        todo!();
+    }
+
+    #[test]
+    fn PLACEHOLDER() {
+        todo!();
+    }
+    #[test]
+    fn PLACEHOLDER() {
+        todo!();
     }
 }
