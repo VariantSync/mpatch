@@ -9,6 +9,7 @@
 // TODO: Recognize file deletion
 // TODO: Write rejects to terminal
 // TODO: Write rejects to file
+// TODO: Feature traces and target configuration are part of the input!
 
 pub mod diff;
 pub mod error;
