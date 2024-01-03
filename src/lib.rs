@@ -10,6 +10,7 @@
 // TODO: Write rejects to terminal
 // TODO: Write rejects to file
 // TODO: Feature traces and target configuration are part of the input!
+// TODO: The matcher should be exchangeable (e.g., use a trait?)
 
 pub mod diff;
 pub mod error;
