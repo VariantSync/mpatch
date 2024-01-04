@@ -31,9 +31,21 @@ impl TryFrom<String> for Diff {
     fn try_from(content: String) -> Result<Self, Self::Error> {
         // Colltect lines until the next FileDiff header
         let mut file_diff_content = vec![];
+        let mut lines = content.lines();
+
+        // TODO: Move to FileDiff parsing
+        // TODO: Eeach diff consists of multiple file diff that start with 'diff ...', these should
+        // be parsed until there is no more filediff
+        if let Some(line) = lines.next() {
+            if !line.starts_with("diff ") {
+                return Err(Error::new(
+                    "invalid format: does not start with 'diff '",
+                    ErrorKind::DiffParseError,
+                ));
+            }
+        }
         for line in content.lines() {
-            // TODO:
-            if line.starts_with("diff ") {}
+            // TODO: collect lines for a FileDiff
             file_diff_content.push(line)
         }
         // Parse the collected lines to a FileDiff
@@ -185,17 +197,83 @@ pub struct SourceFile {
     timestamp: String,
 }
 
+impl TryFrom<String> for SourceFile {
+    type Error = Error;
+
+    fn try_from(line: String) -> Result<Self, Self::Error> {
+        if !line.starts_with("--- ") {
+            return Err(Error::new(
+                "invalid format: does not start with '--- '",
+                ErrorKind::DiffParseError,
+            ));
+        }
+        let (path, timestamp) = parse_file_line(line)?;
+        Ok(Self { path, timestamp })
+    }
+}
+
+impl TryFrom<&str> for SourceFile {
+    type Error = Error;
+
+    fn try_from(line: &str) -> Result<Self, Self::Error> {
+        Self::try_from(line.to_string())
+    }
+}
+
 pub struct TargetFile {
     path: String,
     // TODO: Use actual time value
     timestamp: String,
 }
 
+impl TryFrom<String> for TargetFile {
+    type Error = Error;
+
+    fn try_from(line: String) -> Result<Self, Self::Error> {
+        if !line.starts_with("+++ ") {
+            return Err(Error::new(
+                "invalid format: does not start with '--- '",
+                ErrorKind::DiffParseError,
+            ));
+        }
+        let (path, timestamp) = parse_file_line(line)?;
+        Ok(Self { path, timestamp })
+    }
+    // add code here
+}
+
+impl TryFrom<&str> for TargetFile {
+    type Error = Error;
+
+    fn try_from(line: &str) -> Result<Self, Self::Error> {
+        Self::try_from(line.to_string())
+    }
+    // add code here
+}
+
+fn parse_file_line(input: String) -> Result<(String, String), Error> {
+    let parts: Vec<&str> = input.split_whitespace().collect();
+    if parts.len() != 5 {
+        return Err(Error::new(
+            "invalid format: incorrect number of elements",
+            ErrorKind::DiffParseError,
+        ));
+    }
+
+    let path = parts[1].to_string();
+    let timestamp = format!("{} {} {}", parts[2], parts[3], parts[4]);
+
+    Ok((path, timestamp))
+}
+
 #[cfg(test)]
 mod tests {
-    use crate::{diff::LineType, Hunk};
+    use crate::{
+        diff::{LineType, TargetFile},
+        Hunk,
+    };
 
-    use super::HunkLine;
+    use super::{HunkLine, SourceFile};
 
     fn check_line_parsing(line: &str, expected_type: LineType) {
         let hunk_line = HunkLine::try_from(line).unwrap();
@@ -277,5 +355,33 @@ mod tests {
     fn recognize_invalid_location_line_comma() {
         let location_line = "@@ -1,7 +1;7 @@";
         assert!(Hunk::parse_location_line(location_line).is_err());
+    }
+
+    #[test]
+    fn parse_valid_source_file() {
+        let line = "--- version-A/double_end.txt	2023-11-03 16:39:35.953263076 +0100";
+        let source = SourceFile::try_from(line).unwrap();
+        assert_eq!("version-A/double_end.txt", source.path);
+        assert_eq!("2023-11-03 16:39:35.953263076 +0100", source.timestamp);
+    }
+
+    #[test]
+    fn parse_valid_target_file() {
+        let line = "+++ version-B/double_end.txt	2023-11-03 16:40:12.500153951 +0100";
+        let source = TargetFile::try_from(line).unwrap();
+        assert_eq!("version-B/double_end.txt", source.path);
+        assert_eq!("2023-11-03 16:40:12.500153951 +0100", source.timestamp);
+    }
+
+    #[test]
+    fn recognize_invalid_source_file() {
+        let line = "+++ version-A/double_end.txt	2023-11-03 16:39:35.953263076 +0100";
+        assert!(SourceFile::try_from(line).is_err());
+    }
+
+    #[test]
+    fn recognize_invalid_target_file() {
+        let line = "--- version-A/double_end.txt	2023-11-03 16:39:35.953263076 +0100";
+        assert!(TargetFile::try_from(line).is_err());
     }
 }
