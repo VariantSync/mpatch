@@ -95,6 +95,10 @@ impl TryFrom<Vec<String>> for FileDiff {
             }
             hunk_lines.push(line);
         }
+        // push the last hunk
+        if !hunk_lines.is_empty() {
+            hunks.push(Hunk::try_from(hunk_lines)?);
+        }
         let diff_command = DiffCommand(diff_command);
         Ok(FileDiff {
             diff_command,
@@ -336,8 +340,8 @@ fn parse_file_line(input: String) -> Result<(String, String), Error> {
 #[cfg(test)]
 mod tests {
     use crate::{
-        diff::{LineType, TargetFile},
-        Hunk,
+        diff::{DiffCommand, LineType, TargetFile},
+        FileDiff, Hunk,
     };
 
     use super::{HunkLine, SourceFile};
@@ -501,6 +505,48 @@ mod tests {
         }
     }
 
+    // TODO: Test FileDiff parsing
+    #[test]
+    fn parse_file_diff_with_multiple_hunks() {
+        let content = "diff -Naur version-A/long.txt version-B/long.txt
+                       --- version-A/long.txt	2023-11-03 16:26:28.701847364 +0100
+                       +++ version-B/long.txt	2023-11-03 16:26:37.168563729 +0100
+                       @@ -1,7 +1,7 @@
+                        context 1
+                        context 2
+                        context 3
+                       -REMOVED
+                       +ADDED
+                        context 4
+                        context 5
+                        context 6
+                       @@ -23,7 +23,7 @@
+                        context 1
+                        context 2
+                        context 3
+                       -REMOVED
+                       +ADDED
+                        context 4
+                        context 5
+                        context 6
+                       ";
+        let mut content = prepare_diff_vec(content);
+        content[0] = content[0].trim().to_string();
+        let file_diff = FileDiff::try_from(content.clone()).unwrap();
+        assert_eq!(file_diff.diff_command.0, content[0]);
+        assert_eq!(file_diff.source_file.path, "version-A/long.txt".to_string());
+        assert_eq!(file_diff.target_file.path, "version-B/long.txt".to_string());
+        assert_eq!(
+            file_diff.source_file.timestamp,
+            "2023-11-03 16:26:28.701847364 +0100".to_string()
+        );
+        assert_eq!(
+            file_diff.target_file.timestamp,
+            "2023-11-03 16:26:37.168563729 +0100".to_string()
+        );
+        assert_eq!(file_diff.hunks.len(), 2);
+    }
+
     #[inline(always)]
     fn prepare_diff_vec(input: &str) -> Vec<String> {
         input
@@ -517,6 +563,4 @@ mod tests {
             .filter(|s| !s.is_empty())
             .collect()
     }
-
-    // TODO: Test FileDiff parsing
 }
