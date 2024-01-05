@@ -31,29 +31,32 @@ impl TryFrom<String> for Diff {
     type Error = crate::Error;
 
     fn try_from(content: String) -> Result<Self, Self::Error> {
-        // Colltect lines until the next FileDiff header
         let mut file_diff_content = vec![];
-        let mut lines = content.lines();
+        let mut file_diffs = vec![];
 
-        // TODO: Move to FileDiff parsing
-        // TODO: Eeach diff consists of multiple file diff that start with 'diff ...', these should
-        // be parsed until there is no more filediff
-        if let Some(line) = lines.next() {
-            if !line.starts_with("diff ") {
-                return Err(Error::new(
-                    "invalid format: does not start with 'diff '",
-                    ErrorKind::DiffParseError,
-                ));
-            }
-        }
         for line in content.lines() {
-            // TODO: collect lines for a FileDiff
-            file_diff_content.push(line)
+            // Colltect lines until the next FileDiff header
+            if line.starts_with("diff ") {
+                if !file_diff_content.is_empty() {
+                    file_diffs.push(FileDiff::try_from(file_diff_content)?);
+                }
+                file_diff_content = vec![];
+            }
+            file_diff_content.push(line.to_string());
         }
-        // Parse the collected lines to a FileDiff
-        // Repeat until all lines have been processed
 
-        todo!()
+        // push the last FileDiff
+        if !file_diff_content.is_empty() {
+            file_diffs.push(FileDiff::try_from(file_diff_content)?);
+        }
+        if file_diffs.is_empty() {
+            Err(Error::new(
+                "the given diff is empty: {content}",
+                ErrorKind::DiffParseError,
+            ))
+        } else {
+            Ok(Self { file_diffs })
+        }
     }
 }
 
