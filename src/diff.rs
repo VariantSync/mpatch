@@ -505,7 +505,6 @@ mod tests {
         }
     }
 
-    // TODO: Test FileDiff parsing
     #[test]
     fn parse_file_diff_with_multiple_hunks() {
         let content = "diff -Naur version-A/long.txt version-B/long.txt
