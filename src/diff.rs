@@ -1,3 +1,5 @@
+use std::str::Lines;
+
 use crate::{Error, ErrorKind};
 
 pub struct Diff {
@@ -98,6 +100,25 @@ impl Hunk {
     }
 }
 
+impl TryFrom<Vec<String>> for Hunk {
+    type Error = Error;
+
+    fn try_from(lines: Vec<String>) -> Result<Self, Self::Error> {
+        let mut lines = lines.into_iter();
+        let (source_location, target_location) =
+            Hunk::parse_location_line(&lines.next().unwrap()).unwrap();
+        let mut hunk_lines = vec![];
+        for line in lines {
+            hunk_lines.push(HunkLine::try_from(line)?);
+        }
+        Ok(Hunk {
+            source_location,
+            target_location,
+            lines: hunk_lines,
+        })
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, PartialOrd, Eq, Ord)]
 pub struct HunkLocation {
     hunk_start: usize,
@@ -145,7 +166,7 @@ impl TryFrom<&str> for HunkLocation {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct HunkLine {
     content: String,
     line_type: LineType,
@@ -383,5 +404,34 @@ mod tests {
     fn recognize_invalid_target_file() {
         let line = "--- version-A/double_end.txt	2023-11-03 16:39:35.953263076 +0100";
         assert!(TargetFile::try_from(line).is_err());
+    }
+
+    #[test]
+    fn parse_valid_hunk() {
+        let input = "@@ -1,7 +2,5 @@
+                     context 1
+                     context 2
+                     context 3
+                    -REMOVED
+                    +ADDED
+                     context 4
+                     context 5
+                     context 6
+                    ";
+        let hunk = Hunk::try_from(str_as_string_vec(input)).unwrap();
+        assert_eq!(hunk.source_location.hunk_start, 1);
+        assert_eq!(hunk.source_location.hunk_length, 7);
+        assert_eq!(hunk.target_location.hunk_start, 2);
+        assert_eq!(hunk.target_location.hunk_length, 5);
+
+        for (id, line) in input.lines().skip(1).enumerate() {
+            let line = HunkLine::try_from(line).unwrap();
+            assert_eq!(hunk.lines.get(id), Some(&line));
+        }
+    }
+
+    #[inline(always)]
+    fn str_as_string_vec(input: &str) -> Vec<String> {
+        input.lines().map(|s| s.to_string()).collect()
     }
 }
