@@ -222,7 +222,7 @@ impl TryFrom<String> for HunkLine {
     type Error = Error;
 
     fn try_from(content: String) -> Result<Self, Self::Error> {
-        if content.as_str() == "\\No newline at end of file" {
+        if content.as_str() == "\\ No newline at end of file" {
             return Ok(HunkLine {
                 content,
                 line_type: LineType::EOF,
@@ -233,10 +233,18 @@ impl TryFrom<String> for HunkLine {
                 '+' => LineType::Add,
                 '-' => LineType::Remove,
                 ' ' => LineType::Context,
-                _ => return Err(Error::new("invalid hunk line", ErrorKind::DiffParseError)),
+                _ => {
+                    return Err(Error::new(
+                        &format!("invalid hunk line: {content}"),
+                        ErrorKind::DiffParseError,
+                    ))
+                }
             }
         } else {
-            return Err(Error::new("invalid hunk line", ErrorKind::DiffParseError));
+            return Err(Error::new(
+                &format!("invalid hunk line: {content}"),
+                ErrorKind::DiffParseError,
+            ));
         };
         Ok(HunkLine { content, line_type })
     }
@@ -360,7 +368,7 @@ mod tests {
 
     #[test]
     fn parse_eof_line() {
-        let line = "\\No newline at end of file";
+        let line = "\\ No newline at end of file";
         check_line_parsing(line, LineType::EOF);
     }
 
@@ -456,21 +464,58 @@ mod tests {
                      context 5
                      context 6
                     ";
-        let hunk = Hunk::try_from(str_as_string_vec(input)).unwrap();
+        let input = prepare_diff_vec(input);
+        let hunk = Hunk::try_from(input.clone()).unwrap();
         assert_eq!(hunk.source_location.hunk_start, 1);
         assert_eq!(hunk.source_location.hunk_length, 7);
         assert_eq!(hunk.target_location.hunk_start, 2);
         assert_eq!(hunk.target_location.hunk_length, 5);
 
-        for (id, line) in input.lines().skip(1).enumerate() {
+        for (id, line) in input.into_iter().skip(1).enumerate() {
+            let line = HunkLine::try_from(line).unwrap();
+            assert_eq!(hunk.lines.get(id), Some(&line));
+        }
+    }
+
+    #[test]
+    fn parse_valid_hunk_with_eofs() {
+        let input = "@@ -1,4 +1,3 @@
+                     Line A
+                     Line B
+                    -Line C
+                    -Line D
+                    \\ No newline at end of file
+                    +Line C
+                    \\ No newline at end of file
+                    ";
+        let input = prepare_diff_vec(input);
+        let hunk = Hunk::try_from(input.clone()).unwrap();
+        assert_eq!(hunk.source_location.hunk_start, 1);
+        assert_eq!(hunk.source_location.hunk_length, 4);
+        assert_eq!(hunk.target_location.hunk_start, 1);
+        assert_eq!(hunk.target_location.hunk_length, 3);
+
+        for (id, line) in input.into_iter().skip(1).enumerate() {
             let line = HunkLine::try_from(line).unwrap();
             assert_eq!(hunk.lines.get(id), Some(&line));
         }
     }
 
     #[inline(always)]
-    fn str_as_string_vec(input: &str) -> Vec<String> {
-        input.lines().map(|s| s.to_string()).collect()
+    fn prepare_diff_vec(input: &str) -> Vec<String> {
+        input
+            .lines()
+            .map(|s| s.trim())
+            .map(|s| {
+                // Add back the space for context lines
+                if s.starts_with(|c| c != '-' && c != '+' && c != '\\' && c != '@') {
+                    format!(" {s}")
+                } else {
+                    s.to_string()
+                }
+            })
+            .filter(|s| !s.is_empty())
+            .collect()
     }
 
     // TODO: Test FileDiff parsing
