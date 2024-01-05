@@ -58,6 +58,7 @@ impl TryFrom<String> for Diff {
 }
 
 pub struct FileDiff {
+    diff_command: DiffCommand,
     source_file: SourceFile,
     target_file: TargetFile,
     hunks: Vec<Hunk>,
@@ -68,6 +69,43 @@ impl FileDiff {
         todo!();
     }
 }
+
+impl TryFrom<Vec<String>> for FileDiff {
+    type Error = Error;
+
+    fn try_from(lines: Vec<String>) -> Result<Self, Self::Error> {
+        let mut lines = lines.into_iter();
+        let diff_command = lines.next().unwrap();
+        if !diff_command.starts_with("diff ") {
+            return Err(Error::new(
+                &format!("invalid file diff start: {diff_command}"),
+                ErrorKind::DiffParseError,
+            ));
+        }
+        let source_file = SourceFile::try_from(lines.next().unwrap())?;
+        let target_file = TargetFile::try_from(lines.next().unwrap())?;
+        let mut hunk_lines = vec![];
+        let mut hunks = vec![];
+        for line in lines {
+            if line.starts_with("@@ ") {
+                if !hunk_lines.is_empty() {
+                    hunks.push(Hunk::try_from(hunk_lines)?);
+                }
+                hunk_lines = vec![];
+            }
+            hunk_lines.push(line);
+        }
+        let diff_command = DiffCommand(diff_command);
+        Ok(FileDiff {
+            diff_command,
+            source_file,
+            target_file,
+            hunks,
+        })
+    }
+}
+
+pub struct DiffCommand(pub String);
 
 pub struct Hunk {
     source_location: HunkLocation,
@@ -434,4 +472,6 @@ mod tests {
     fn str_as_string_vec(input: &str) -> Vec<String> {
         input.lines().map(|s| s.to_string()).collect()
     }
+
+    // TODO: Test FileDiff parsing
 }
