@@ -14,7 +14,7 @@ impl Diff {
     }
 
     pub fn file_diffs(&self) -> &[FileDiff] {
-        todo!();
+        self.file_diffs.as_slice()
     }
 
     pub fn len(&self) -> usize {
@@ -202,6 +202,13 @@ impl TryFrom<&str> for HunkLocation {
                 Ok(number) => numbers.push(number),
                 Err(_) => return error(),
             }
+        }
+
+        // TODO: verify that handling the location specifiers like this is correct
+        if numbers.len() == 1 {
+            // Sometimes, the location is only given by the location, but not with a length (i.e.,
+            // if there is only one line.
+            numbers.push(numbers[0]);
         }
 
         Ok(HunkLocation {
