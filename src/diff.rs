@@ -1,4 +1,4 @@
-use std::str::Lines;
+use std::{fmt::Display, io::Write, str::Lines};
 
 use crate::{Error, ErrorKind};
 
@@ -25,6 +25,15 @@ impl CommitDiff {
     #[must_use]
     pub fn is_empty(&self) -> bool {
         self.len() == 0
+    }
+}
+
+impl Display for CommitDiff {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for file_diff in &self.file_diffs {
+            write!(f, "{file_diff}")?;
+        }
+        Ok(())
     }
 }
 
@@ -69,9 +78,41 @@ pub struct FileDiff {
     hunks: Vec<Hunk>,
 }
 
+impl Display for FileDiff {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "{}", self.diff_command)?;
+        writeln!(
+            f,
+            "--- {}\t{}",
+            self.source_file.path, self.source_file.timestamp
+        )?;
+        writeln!(
+            f,
+            "+++ {}\t{}",
+            self.target_file.path, self.target_file.timestamp
+        )?;
+        for hunk in &self.hunks {
+            writeln!(f, "{hunk}")?;
+        }
+        Ok(())
+    }
+}
+
 impl FileDiff {
-    pub fn text(&self) -> &str {
-        todo!();
+    pub fn diff_command(&self) -> &DiffCommand {
+        &self.diff_command
+    }
+
+    pub fn source_file(&self) -> &SourceFile {
+        &self.source_file
+    }
+
+    pub fn target_file(&self) -> &TargetFile {
+        &self.target_file
+    }
+
+    pub fn hunks(&self) -> &[Hunk] {
+        self.hunks.as_ref()
     }
 }
 
@@ -117,6 +158,12 @@ impl TryFrom<Vec<String>> for FileDiff {
 #[derive(Debug, Clone)]
 pub struct DiffCommand(pub String);
 
+impl Display for DiffCommand {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Hunk {
     source_location: HunkLocation,
@@ -147,6 +194,32 @@ impl Hunk {
 
         Ok((hunk_locations[0].unwrap(), hunk_locations[1].unwrap()))
     }
+
+    pub fn source_location(&self) -> HunkLocation {
+        self.source_location
+    }
+
+    pub fn target_location(&self) -> HunkLocation {
+        self.target_location
+    }
+
+    pub fn lines(&self) -> &[HunkLine] {
+        self.lines.as_ref()
+    }
+}
+
+impl Display for Hunk {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(
+            f,
+            "@@ -{} +{} @@",
+            self.source_location, self.target_location
+        )?;
+        for line in &self.lines {
+            writeln!(f, "{line}")?;
+        }
+        Ok(())
+    }
 }
 
 impl TryFrom<Vec<String>> for Hunk {
@@ -175,10 +248,23 @@ pub struct HunkLocation {
 }
 
 impl HunkLocation {
-    fn new(hunk_start: usize, hunk_length: usize) -> HunkLocation {
-        HunkLocation {
-            hunk_start,
-            hunk_length,
+    pub fn hunk_start(&self) -> usize {
+        self.hunk_start
+    }
+
+    pub fn hunk_length(&self) -> usize {
+        self.hunk_length
+    }
+}
+
+impl Display for HunkLocation {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if self.hunk_start == 1 && self.hunk_length == 1 {
+            // handle this weird edge case in unix diff
+            // if the location and size both are '1', the location text is abbreviated to just '1'
+            write!(f, "1")
+        } else {
+            write!(f, "{},{}", self.hunk_start, self.hunk_length,)
         }
     }
 }
@@ -226,6 +312,22 @@ impl TryFrom<&str> for HunkLocation {
 pub struct HunkLine {
     content: String,
     line_type: LineType,
+}
+
+impl HunkLine {
+    pub fn content(&self) -> &str {
+        self.content.as_ref()
+    }
+
+    pub fn line_type(&self) -> LineType {
+        self.line_type
+    }
+}
+
+impl Display for HunkLine {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.content)
+    }
 }
 
 impl TryFrom<&str> for HunkLine {
@@ -283,6 +385,16 @@ pub struct SourceFile {
     timestamp: String,
 }
 
+impl SourceFile {
+    pub fn path(&self) -> &str {
+        self.path.as_ref()
+    }
+
+    pub fn timestamp(&self) -> &str {
+        self.timestamp.as_ref()
+    }
+}
+
 impl TryFrom<String> for SourceFile {
     type Error = Error;
 
@@ -311,6 +423,16 @@ pub struct TargetFile {
     path: String,
     // TODO: Use actual time value
     timestamp: String,
+}
+
+impl TargetFile {
+    pub fn path(&self) -> &str {
+        self.path.as_ref()
+    }
+
+    pub fn timestamp(&self) -> &str {
+        self.timestamp.as_ref()
+    }
 }
 
 impl TryFrom<String> for TargetFile {
