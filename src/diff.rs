@@ -1,4 +1,4 @@
-use std::{fmt::Display, io::Write, str::Lines};
+use std::fmt::Display;
 
 use crate::{Error, ErrorKind};
 
@@ -293,8 +293,8 @@ impl TryFrom<&str> for HunkLocation {
         }
 
         let mut numbers = vec![];
-        for number in value[1..].split(",") {
-            match usize::from_str_radix(number, 10) {
+        for number in value[1..].split(',') {
+            match number.parse::<usize>() {
                 Ok(number) => numbers.push(number),
                 Err(_) => return error(),
             }
@@ -454,7 +454,6 @@ impl TryFrom<String> for TargetFile {
         let (path, timestamp) = parse_file_line(line)?;
         Ok(Self { path, timestamp })
     }
-    // add code here
 }
 
 impl TryFrom<&str> for TargetFile {
@@ -463,7 +462,6 @@ impl TryFrom<&str> for TargetFile {
     fn try_from(line: &str) -> Result<Self, Self::Error> {
         Self::try_from(line.to_string())
     }
-    // add code here
 }
 
 fn parse_file_line(input: String) -> Result<(String, String), Error> {
@@ -484,7 +482,7 @@ fn parse_file_line(input: String) -> Result<(String, String), Error> {
 #[cfg(test)]
 mod tests {
     use crate::{
-        diff::{DiffCommand, LineType, TargetFile},
+        diff::{LineType, TargetFile},
         FileDiff, Hunk,
     };
 
