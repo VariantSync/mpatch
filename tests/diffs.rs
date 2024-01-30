@@ -139,7 +139,7 @@ diff -Naur version-A/single.txt version-B/single.txt
     "
     .trim()
     .to_string();
-    assert_eq!(diff.text(), text);
+    assert_eq!(diff.to_string(), text);
 
     let diff = file_diffs.get(1).unwrap();
     let text = r"
@@ -157,7 +157,7 @@ diff -Naur version-A/double_end.txt version-B/double_end.txt
     "
     .trim()
     .to_string();
-    assert_eq!(diff.text(), text);
+    assert_eq!(diff.to_string(), text);
 
     let diff = file_diffs.get(2).unwrap();
     let text = r"
@@ -185,5 +185,5 @@ diff -Naur version-A/long.txt version-B/long.txt
     "
     .trim()
     .to_string();
-    assert_eq!(diff.text(), text);
+    assert_eq!(diff.to_string(), text);
 }
