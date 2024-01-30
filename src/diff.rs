@@ -2,15 +2,16 @@ use std::str::Lines;
 
 use crate::{Error, ErrorKind};
 
-pub struct Diff {
+#[derive(Debug, Clone)]
+pub struct CommitDiff {
     file_diffs: Vec<FileDiff>,
 }
 
-impl Diff {
-    pub fn read(path: &str) -> Result<Diff, Error> {
+impl CommitDiff {
+    pub fn read(path: &str) -> Result<CommitDiff, Error> {
         let content = std::fs::read_to_string(path);
         let content = content.expect("was not able to load diff");
-        Diff::try_from(content)
+        CommitDiff::try_from(content)
     }
 
     pub fn file_diffs(&self) -> &[FileDiff] {
@@ -27,7 +28,7 @@ impl Diff {
     }
 }
 
-impl TryFrom<String> for Diff {
+impl TryFrom<String> for CommitDiff {
     type Error = crate::Error;
 
     fn try_from(content: String) -> Result<Self, Self::Error> {
@@ -60,6 +61,7 @@ impl TryFrom<String> for Diff {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct FileDiff {
     diff_command: DiffCommand,
     source_file: SourceFile,
@@ -112,8 +114,10 @@ impl TryFrom<Vec<String>> for FileDiff {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct DiffCommand(pub String);
 
+#[derive(Debug, Clone)]
 pub struct Hunk {
     source_location: HunkLocation,
     target_location: HunkLocation,
@@ -218,7 +222,7 @@ impl TryFrom<&str> for HunkLocation {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HunkLine {
     content: String,
     line_type: LineType,
@@ -272,6 +276,7 @@ pub enum LineType {
     EOF,
 }
 
+#[derive(Debug, Clone)]
 pub struct SourceFile {
     path: String,
     // TODO: Use actual time value
@@ -301,6 +306,7 @@ impl TryFrom<&str> for SourceFile {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct TargetFile {
     path: String,
     // TODO: Use actual time value

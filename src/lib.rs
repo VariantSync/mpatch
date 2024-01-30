@@ -18,7 +18,7 @@
 pub mod diff;
 pub mod error;
 
-pub use diff::Diff;
+pub use diff::CommitDiff;
 pub use diff::FileDiff;
 pub use diff::Hunk;
 pub use error::Error;
