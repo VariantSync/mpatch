@@ -30,8 +30,13 @@ impl CommitDiff {
 
 impl Display for CommitDiff {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut multiple = false;
         for file_diff in &self.file_diffs {
+            if multiple {
+                writeln!(f)?;
+            }
             write!(f, "{file_diff}")?;
+            multiple = true;
         }
         Ok(())
     }
@@ -80,19 +85,20 @@ pub struct FileDiff {
 
 impl Display for FileDiff {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "{}", self.diff_command)?;
-        writeln!(
+        write!(f, "{}", self.diff_command)?;
+        write!(
             f,
-            "--- {}\t{}",
+            "\n--- {}\t{}",
             self.source_file.path, self.source_file.timestamp
         )?;
-        writeln!(
+        write!(
             f,
-            "+++ {}\t{}",
+            "\n+++ {}\t{}",
             self.target_file.path, self.target_file.timestamp
         )?;
         for hunk in &self.hunks {
-            writeln!(f, "{hunk}")?;
+            // no writeln because Hunks have newline characters themselves
+            write!(f, "\n{hunk}")?;
         }
         Ok(())
     }
@@ -210,13 +216,13 @@ impl Hunk {
 
 impl Display for Hunk {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(
+        write!(
             f,
             "@@ -{} +{} @@",
             self.source_location, self.target_location
         )?;
         for line in &self.lines {
-            writeln!(f, "{line}")?;
+            write!(f, "\n{line}")?;
         }
         Ok(())
     }

@@ -1,3 +1,5 @@
+use std::fs;
+
 use mpatch::{diff::LineType, CommitDiff, FileDiff};
 
 const DIFF_FILE: &str = "tests/diffs/base_patch.diff";
@@ -113,15 +115,11 @@ fn parse_line_type() {
 }
 
 #[test]
-fn parse_line_location() {
-    todo!();
-}
-
-#[test]
 fn unparse_commit_diff() {
     let diff = CommitDiff::read(DIFF_FILE).unwrap();
-    let diff_text = std::fs::read_to_string(DIFF_FILE).unwrap();
-    assert_eq!(diff.to_string(), diff_text);
+    let diff_text = fs::read_to_string(DIFF_FILE).unwrap();
+
+    assert_eq!(diff.to_string(), diff_text.trim_end());
 }
 
 #[test]
@@ -129,21 +127,21 @@ fn unparse_file_diffs() {
     let file_diffs = load_diffs();
 
     let diff = file_diffs.first().unwrap();
-    let text = r"
-diff -Naur version-A/single.txt version-B/single.txt
+    let text = r"diff -Naur version-A/single.txt version-B/single.txt
 --- version-A/single.txt	2023-11-03 16:26:28.701847364 +0100
 +++ version-B/single.txt	2023-11-03 16:26:37.168563729 +0100
 @@ -0,0 +1 @@
 +ADDED
-\ No newline at end of file
-    "
-    .trim()
-    .to_string();
+\ No newline at end of file"
+        .trim()
+        .to_string();
+
+    assert_eq!(diff.hunks().first().unwrap().lines().len(), 2);
     assert_eq!(diff.to_string(), text);
 
     let diff = file_diffs.get(1).unwrap();
-    let text = r"
-diff -Naur version-A/double_end.txt version-B/double_end.txt
+    assert_eq!(diff.hunks().first().unwrap().lines().len(), 7);
+    let text = r"diff -Naur version-A/double_end.txt version-B/double_end.txt
 --- version-A/double_end.txt	2023-11-03 16:39:35.953263076 +0100
 +++ version-B/double_end.txt	2023-11-03 16:40:12.500153951 +0100
 @@ -1,4 +1,3 @@
@@ -153,15 +151,14 @@ diff -Naur version-A/double_end.txt version-B/double_end.txt
 -Line D
 \ No newline at end of file
 +Line C
-\ No newline at end of file
-    "
-    .trim()
-    .to_string();
+\ No newline at end of file"
+        .trim()
+        .to_string();
     assert_eq!(diff.to_string(), text);
 
     let diff = file_diffs.get(2).unwrap();
-    let text = r"
-diff -Naur version-A/long.txt version-B/long.txt
+    assert_eq!(diff.hunks().get(1).unwrap().lines().len(), 8);
+    let text = r"diff -Naur version-A/long.txt version-B/long.txt
 --- version-A/long.txt	2023-11-03 16:26:28.701847364 +0100
 +++ version-B/long.txt	2023-11-03 16:26:37.168563729 +0100
 @@ -1,7 +1,7 @@
@@ -181,9 +178,8 @@ diff -Naur version-A/long.txt version-B/long.txt
 +ADDED
  context 4
  context 5
- context 6
-    "
-    .trim()
-    .to_string();
+ context 6"
+        .trim()
+        .to_string();
     assert_eq!(diff.to_string(), text);
 }
