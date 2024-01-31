@@ -567,7 +567,7 @@ fn parse_file_line(input: String) -> Result<(String, String), Error> {
 #[cfg(test)]
 mod tests {
     use crate::{
-        diff::{LineType, TargetFile},
+        diffs::{LineType, TargetFile},
         FileDiff, Hunk,
     };
 

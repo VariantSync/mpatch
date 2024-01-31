@@ -12,14 +12,14 @@
 // required changes, but the matcher itself is not based on diff but on LCS; look for an LCS crate
 // on crates.io
 
-pub mod diff;
+pub mod diffs;
 pub mod error;
 pub mod files;
 pub mod matching;
 
-pub use diff::CommitDiff;
-pub use diff::FileDiff;
-pub use diff::Hunk;
+pub use diffs::CommitDiff;
+pub use diffs::FileDiff;
+pub use diffs::Hunk;
 pub use error::Error;
 pub use error::ErrorKind;
 pub use files::FileArtifact;

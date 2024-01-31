@@ -1,7 +1,7 @@
 use std::fs;
 
 use mpatch::{
-    diff::{Changes, LineType},
+    diffs::{Changes, LineType},
     CommitDiff, FileDiff,
 };
 
