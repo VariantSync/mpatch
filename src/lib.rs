@@ -1,4 +1,3 @@
-// TODO: Parse source file into internal format
 // TODO: Align patch diff with variant diff
 // TODO: Apply changes to target file
 // TODO: Load target file from disk

@@ -120,6 +120,58 @@ impl FileDiff {
     pub fn hunks(&self) -> &[Hunk] {
         self.hunks.as_ref()
     }
+
+    pub fn changes(&self) -> Changes {
+        let changes: Vec<&HunkLine> = self
+            .hunks()
+            .iter()
+            .flat_map(|h| h.lines.iter())
+            .filter(|l| l.line_type == LineType::Add || l.line_type == LineType::Remove)
+            // reverse the order so that changes can be easily popped from the vec
+            .rev()
+            .collect();
+        Changes { changes }
+    }
+
+    pub fn into_changes(self) -> IntoChanges {
+        let changes: Vec<HunkLine> = self
+            .hunks
+            .into_iter()
+            .flat_map(|h| h.lines)
+            .filter(|l| l.line_type == LineType::Add || l.line_type == LineType::Remove)
+            // reverse the order so that changes can be easily popped from the vec
+            .rev()
+            .collect();
+        IntoChanges { changes }
+    }
+}
+
+pub struct Changes<'a> {
+    // changes in reverse order
+    // the order is reversed to allow pop operations
+    changes: Vec<&'a HunkLine>,
+}
+
+impl<'a> Iterator for Changes<'a> {
+    type Item = &'a HunkLine;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.changes.pop()
+    }
+}
+
+pub struct IntoChanges {
+    // changes in reverse order
+    // the order is reversed to allow pop operations
+    changes: Vec<HunkLine>,
+}
+
+impl Iterator for IntoChanges {
+    type Item = HunkLine;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.changes.pop()
+    }
 }
 
 impl TryFrom<Vec<String>> for FileDiff {
@@ -368,6 +420,14 @@ impl HunkLine {
             target_line,
             line_type,
         })
+    }
+
+    pub fn source_line(&self) -> Option<usize> {
+        self.source_line
+    }
+
+    pub fn target_line(&self) -> Option<usize> {
+        self.target_line
     }
 }
 
