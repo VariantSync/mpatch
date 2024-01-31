@@ -1,6 +1,9 @@
 use std::fs;
 
-use mpatch::{diff::LineType, CommitDiff, FileDiff};
+use mpatch::{
+    diff::{Changes, LineType},
+    CommitDiff, FileDiff,
+};
 
 const DIFF_FILE: &str = "tests/diffs/base_patch.diff";
 
@@ -182,4 +185,68 @@ fn unparse_file_diffs() {
         .trim()
         .to_string();
     assert_eq!(diff.to_string(), text);
+}
+
+#[test]
+fn retrieve_changes_per_file() {
+    let diff = CommitDiff::read(DIFF_FILE).unwrap();
+    let file_diff = &diff.file_diffs()[0];
+    let changes = file_diff.changes();
+    assert_eq!((1, 0), count_changes(changes));
+
+    let file_diff = &diff.file_diffs()[1];
+    let changes = file_diff.changes();
+    assert_eq!((1, 2), count_changes(changes));
+
+    let file_diff = &diff.file_diffs()[2];
+    let changes = file_diff.changes();
+    assert_eq!((2, 2), count_changes(changes));
+}
+
+fn count_changes(changes: Changes) -> (usize, usize) {
+    let mut add_count = 0;
+    let mut remove_count = 0;
+    for change in changes {
+        match change.line_type() {
+            LineType::Add => add_count += 1,
+            LineType::Remove => remove_count += 1,
+            _ => panic!("Not a change!"),
+        }
+    }
+    (add_count, remove_count)
+}
+
+#[test]
+fn locate_changes_per_file() {
+    let diff = CommitDiff::read(DIFF_FILE).unwrap();
+
+    let file_diff = &diff.file_diffs()[0];
+    let changes = file_diff.changes();
+    let mut locations = change_locations(changes);
+    assert_eq!((None, Some(1)), locations.pop().unwrap());
+
+    let file_diff = &diff.file_diffs()[1];
+    let changes = file_diff.changes();
+    let mut locations = change_locations(changes);
+    locations.reverse();
+    assert_eq!((Some(3), None), locations.pop().unwrap());
+    assert_eq!((Some(4), None), locations.pop().unwrap());
+    assert_eq!((None, Some(3)), locations.pop().unwrap());
+
+    let file_diff = &diff.file_diffs()[2];
+    let changes = file_diff.changes();
+    let mut locations = change_locations(changes);
+    locations.reverse();
+    assert_eq!((Some(4), None), locations.pop().unwrap());
+    assert_eq!((None, Some(4)), locations.pop().unwrap());
+    assert_eq!((Some(26), None), locations.pop().unwrap());
+    assert_eq!((None, Some(26)), locations.pop().unwrap());
+}
+
+fn change_locations(changes: Changes) -> Vec<(Option<usize>, Option<usize>)> {
+    let mut locations = vec![];
+    for change in changes {
+        locations.push((change.source_line(), change.target_line()));
+    }
+    locations
 }
