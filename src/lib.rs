@@ -1,8 +1,6 @@
-// TODO: Parse diff into internal format
 // TODO: Parse source file into internal format
 // TODO: Align patch diff with variant diff
 // TODO: Apply changes to target file
-// TODO: Load diff from disk
 // TODO: Load target file from disk
 // TODO: Save target file to disk
 // TODO: Recognize file creation
@@ -17,6 +15,8 @@
 
 pub mod diff;
 pub mod error;
+mod files;
+mod matching;
 
 pub use diff::CommitDiff;
 pub use diff::FileDiff;
