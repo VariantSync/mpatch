@@ -15,11 +15,14 @@
 
 pub mod diff;
 pub mod error;
-mod files;
-mod matching;
+pub mod files;
+pub mod matching;
 
 pub use diff::CommitDiff;
 pub use diff::FileDiff;
 pub use diff::Hunk;
 pub use error::Error;
 pub use error::ErrorKind;
+pub use files::FileArtifact;
+pub use matching::LCSMatcher;
+pub use matching::Matcher;

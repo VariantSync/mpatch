@@ -25,6 +25,15 @@ impl FileArtifact {
         fs::write(&self.path, self.to_string())
     }
 
+    pub fn len(&self) -> usize {
+        self.lines.len()
+    }
+
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.lines.is_empty()
+    }
+
     /// Individual function that can be called in unit tests without requiring a test file
     fn parse_content(path: &str, file_content: String) -> Self {
         let mut lines = BTreeMap::new();
