@@ -236,8 +236,33 @@ impl TryFrom<Vec<String>> for Hunk {
         let (source_location, target_location) =
             Hunk::parse_location_line(&lines.next().unwrap()).unwrap();
         let mut hunk_lines = vec![];
+
+        let mut source_id = source_location.hunk_start;
+        let mut target_id = target_location.hunk_start;
         for line in lines {
-            hunk_lines.push(HunkLine::try_from(line)?);
+            let line_type = LineType::determine_type(&line)?;
+            let mut source_line = None;
+            let mut target_line = None;
+            match line_type {
+                LineType::Context => {
+                    source_line = Some(source_id);
+                    source_id += 1;
+                    target_line = Some(target_id);
+                    target_id += 1;
+                }
+                LineType::Add => {
+                    target_line = Some(target_id);
+                    target_id += 1;
+                }
+
+                LineType::Remove => {
+                    source_line = Some(source_id);
+                    source_id += 1;
+                }
+                LineType::EOF => (),
+            }
+            // Set the location of the line
+            hunk_lines.push(HunkLine::new(source_line, target_line, line_type, line)?);
         }
         Ok(Hunk {
             source_location,
@@ -316,63 +341,39 @@ impl TryFrom<&str> for HunkLocation {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HunkLine {
-    content: String,
+    line: String,
+    source_line: Option<usize>,
+    target_line: Option<usize>,
     line_type: LineType,
 }
 
 impl HunkLine {
     pub fn content(&self) -> &str {
-        self.content.as_ref()
+        self.line.as_ref()
     }
 
     pub fn line_type(&self) -> LineType {
         self.line_type
     }
+
+    pub fn new(
+        source_line: Option<usize>,
+        target_line: Option<usize>,
+        line_type: LineType,
+        line: String,
+    ) -> Result<HunkLine, Error> {
+        Ok(HunkLine {
+            line,
+            source_line,
+            target_line,
+            line_type,
+        })
+    }
 }
 
 impl Display for HunkLine {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.content)
-    }
-}
-
-impl TryFrom<&str> for HunkLine {
-    type Error = Error;
-
-    fn try_from(content: &str) -> Result<Self, Self::Error> {
-        HunkLine::try_from(content.to_string())
-    }
-}
-
-impl TryFrom<String> for HunkLine {
-    type Error = Error;
-
-    fn try_from(content: String) -> Result<Self, Self::Error> {
-        if content.as_str() == "\\ No newline at end of file" {
-            return Ok(HunkLine {
-                content,
-                line_type: LineType::EOF,
-            });
-        }
-        let line_type = if let Some(marker) = content.chars().nth(0) {
-            match marker {
-                '+' => LineType::Add,
-                '-' => LineType::Remove,
-                ' ' => LineType::Context,
-                _ => {
-                    return Err(Error::new(
-                        &format!("invalid hunk line: {content}"),
-                        ErrorKind::DiffParseError,
-                    ))
-                }
-            }
-        } else {
-            return Err(Error::new(
-                &format!("invalid hunk line: {content}"),
-                ErrorKind::DiffParseError,
-            ));
-        };
-        Ok(HunkLine { content, line_type })
+        write!(f, "{}", self.line)
     }
 }
 
@@ -382,6 +383,30 @@ pub enum LineType {
     Add,
     Remove,
     EOF,
+}
+
+impl LineType {
+    fn determine_type(line: &str) -> Result<LineType, Error> {
+        if line == "\\ No newline at end of file" {
+            return Ok(LineType::EOF);
+        }
+        if let Some(marker) = line.chars().nth(0) {
+            match marker {
+                '+' => Ok(LineType::Add),
+                '-' => Ok(LineType::Remove),
+                ' ' => Ok(LineType::Context),
+                _ => Err(Error::new(
+                    &format!("invalid hunk line: {line}"),
+                    ErrorKind::DiffParseError,
+                )),
+            }
+        } else {
+            Err(Error::new(
+                &format!("invalid hunk line: {line}"),
+                ErrorKind::DiffParseError,
+            ))
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -489,9 +514,8 @@ mod tests {
     use super::{HunkLine, SourceFile};
 
     fn check_line_parsing(line: &str, expected_type: LineType) {
-        let hunk_line = HunkLine::try_from(line).unwrap();
-        assert_eq!(hunk_line.content, line);
-        assert_eq!(hunk_line.line_type, expected_type);
+        let line_type = LineType::determine_type(line).unwrap();
+        assert_eq!(line_type, expected_type);
     }
 
     #[test]
@@ -521,19 +545,19 @@ mod tests {
     #[test]
     fn recognize_invalid_line() {
         let line = "Not a valid format";
-        assert!(HunkLine::try_from(line).is_err());
+        assert!(LineType::determine_type(line).is_err());
     }
 
     #[test]
     fn recognize_invalid_line_eof() {
         let line = "\\Not a valid line";
-        assert!(HunkLine::try_from(line).is_err());
+        assert!(LineType::determine_type(line).is_err());
     }
 
     #[test]
     fn recognize_invalid_empty_line() {
         let line = "";
-        assert!(HunkLine::try_from(line).is_err());
+        assert!(LineType::determine_type(line).is_err());
     }
 
     #[test]
@@ -617,8 +641,54 @@ mod tests {
         assert_eq!(hunk.target_location.hunk_start, 2);
         assert_eq!(hunk.target_location.hunk_length, 5);
 
-        for (id, line) in input.into_iter().skip(1).enumerate() {
-            let line = HunkLine::try_from(line).unwrap();
+        let expected_lines = [
+            HunkLine::new(
+                Some(1),
+                Some(2),
+                LineType::Context,
+                " context 1".to_string(),
+            )
+            .unwrap(),
+            HunkLine::new(
+                Some(2),
+                Some(3),
+                LineType::Context,
+                " context 2".to_string(),
+            )
+            .unwrap(),
+            HunkLine::new(
+                Some(3),
+                Some(4),
+                LineType::Context,
+                " context 3".to_string(),
+            )
+            .unwrap(),
+            HunkLine::new(Some(4), None, LineType::Remove, "-REMOVED".to_string()).unwrap(),
+            HunkLine::new(None, Some(5), LineType::Add, "+ADDED".to_string()).unwrap(),
+            HunkLine::new(
+                Some(5),
+                Some(6),
+                LineType::Context,
+                " context 4".to_string(),
+            )
+            .unwrap(),
+            HunkLine::new(
+                Some(6),
+                Some(7),
+                LineType::Context,
+                " context 5".to_string(),
+            )
+            .unwrap(),
+            HunkLine::new(
+                Some(7),
+                Some(8),
+                LineType::Context,
+                " context 6".to_string(),
+            )
+            .unwrap(),
+        ];
+
+        for (id, line) in expected_lines.into_iter().enumerate() {
             assert_eq!(hunk.lines.get(id), Some(&line));
         }
     }
@@ -641,9 +711,18 @@ mod tests {
         assert_eq!(hunk.target_location.hunk_start, 1);
         assert_eq!(hunk.target_location.hunk_length, 3);
 
-        for (id, line) in input.into_iter().skip(1).enumerate() {
-            let line = HunkLine::try_from(line).unwrap();
-            assert_eq!(hunk.lines.get(id), Some(&line));
+        let expected_types = [
+            LineType::Context,
+            LineType::Context,
+            LineType::Remove,
+            LineType::Remove,
+            LineType::EOF,
+            LineType::Add,
+            LineType::EOF,
+        ];
+
+        for (id, line_type) in expected_types.into_iter().enumerate() {
+            assert_eq!(hunk.lines.get(id).unwrap().line_type(), line_type);
         }
     }
 
@@ -703,5 +782,42 @@ mod tests {
             })
             .filter(|s| !s.is_empty())
             .collect()
+    }
+
+    #[test]
+    fn identify_line_locations() {
+        let input = "@@ -4,7 +10,5 @@
+                     context 1
+                     context 2
+                     context 3
+                    -REMOVED
+                    +ADDED
+                     context 4
+                     context 5
+                     context 6
+                    ";
+        let input = prepare_diff_vec(input);
+        let hunk = Hunk::try_from(input.clone()).unwrap();
+
+        let offset_old = 3;
+        let offset_new = 9;
+
+        let expected_lines = [
+            (Some(1), Some(1)),
+            (Some(2), Some(2)),
+            (Some(3), Some(3)),
+            (Some(4), None),
+            (None, Some(4)),
+            (Some(5), Some(5)),
+            (Some(6), Some(6)),
+            (Some(7), Some(7)),
+        ];
+
+        for (i, line) in hunk.lines.iter().enumerate() {
+            let (old_id, new_id) = expected_lines[i];
+            println!("{line:?}");
+            assert_eq!(line.source_line, old_id.map(|v| v + offset_old));
+            assert_eq!(line.target_line, new_id.map(|v| v + offset_new));
+        }
     }
 }
