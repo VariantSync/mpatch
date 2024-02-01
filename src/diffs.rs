@@ -293,25 +293,30 @@ impl TryFrom<Vec<String>> for Hunk {
         let mut target_id = target_location.hunk_start;
         for line in lines {
             let line_type = LineType::determine_type(&line)?;
-            let mut source_line = None;
-            let mut target_line = None;
+            let source_line;
+            let target_line;
             match line_type {
                 LineType::Context => {
-                    source_line = Some(source_id);
+                    source_line = LineLocation::RealLocation(source_id);
                     source_id += 1;
-                    target_line = Some(target_id);
+                    target_line = LineLocation::RealLocation(target_id);
                     target_id += 1;
                 }
                 LineType::Add => {
-                    target_line = Some(target_id);
+                    source_line = LineLocation::ChangeLocation(source_id);
+                    target_line = LineLocation::RealLocation(target_id);
                     target_id += 1;
                 }
 
                 LineType::Remove => {
-                    source_line = Some(source_id);
+                    source_line = LineLocation::RealLocation(source_id);
                     source_id += 1;
+                    target_line = LineLocation::ChangeLocation(target_id);
                 }
-                LineType::EOF => (),
+                LineType::EOF => {
+                    source_line = LineLocation::None;
+                    target_line = LineLocation::None;
+                }
             }
             // Set the location of the line
             hunk_lines.push(HunkLine::new(source_line, target_line, line_type, line)?);
@@ -394,9 +399,16 @@ impl TryFrom<&str> for HunkLocation {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HunkLine {
     line: String,
-    source_line: Option<usize>,
-    target_line: Option<usize>,
+    source_line: LineLocation,
+    target_line: LineLocation,
     line_type: LineType,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum LineLocation {
+    RealLocation(usize),
+    ChangeLocation(usize),
+    None,
 }
 
 impl HunkLine {
@@ -409,8 +421,8 @@ impl HunkLine {
     }
 
     pub fn new(
-        source_line: Option<usize>,
-        target_line: Option<usize>,
+        source_line: LineLocation,
+        target_line: LineLocation,
         line_type: LineType,
         line: String,
     ) -> Result<HunkLine, Error> {
@@ -422,11 +434,11 @@ impl HunkLine {
         })
     }
 
-    pub fn source_line(&self) -> Option<usize> {
+    pub fn source_line(&self) -> LineLocation {
         self.source_line
     }
 
-    pub fn target_line(&self) -> Option<usize> {
+    pub fn target_line(&self) -> LineLocation {
         self.target_line
     }
 }
@@ -571,6 +583,7 @@ mod tests {
         FileDiff, Hunk,
     };
 
+    use super::LineLocation::{ChangeLocation, RealLocation};
     use super::{HunkLine, SourceFile};
 
     fn check_line_parsing(line: &str, expected_type: LineType) {
@@ -703,45 +716,57 @@ mod tests {
 
         let expected_lines = [
             HunkLine::new(
-                Some(1),
-                Some(2),
+                RealLocation(1),
+                RealLocation(2),
                 LineType::Context,
                 " context 1".to_string(),
             )
             .unwrap(),
             HunkLine::new(
-                Some(2),
-                Some(3),
+                RealLocation(2),
+                RealLocation(3),
                 LineType::Context,
                 " context 2".to_string(),
             )
             .unwrap(),
             HunkLine::new(
-                Some(3),
-                Some(4),
+                RealLocation(3),
+                RealLocation(4),
                 LineType::Context,
                 " context 3".to_string(),
             )
             .unwrap(),
-            HunkLine::new(Some(4), None, LineType::Remove, "-REMOVED".to_string()).unwrap(),
-            HunkLine::new(None, Some(5), LineType::Add, "+ADDED".to_string()).unwrap(),
             HunkLine::new(
-                Some(5),
-                Some(6),
+                RealLocation(4),
+                ChangeLocation(5),
+                LineType::Remove,
+                "-REMOVED".to_string(),
+            )
+            .unwrap(),
+            HunkLine::new(
+                ChangeLocation(5),
+                RealLocation(5),
+                LineType::Add,
+                "+ADDED".to_string(),
+            )
+            .unwrap(),
+            HunkLine::new(
+                RealLocation(5),
+                RealLocation(6),
                 LineType::Context,
                 " context 4".to_string(),
             )
             .unwrap(),
             HunkLine::new(
-                Some(6),
-                Some(7),
+                RealLocation(6),
+                RealLocation(7),
                 LineType::Context,
                 " context 5".to_string(),
             )
             .unwrap(),
             HunkLine::new(
-                Some(7),
-                Some(8),
+                RealLocation(7),
+                RealLocation(8),
                 LineType::Context,
                 " context 6".to_string(),
             )
@@ -863,21 +888,31 @@ mod tests {
         let offset_new = 9;
 
         let expected_lines = [
-            (Some(1), Some(1)),
-            (Some(2), Some(2)),
-            (Some(3), Some(3)),
-            (Some(4), None),
-            (None, Some(4)),
-            (Some(5), Some(5)),
-            (Some(6), Some(6)),
-            (Some(7), Some(7)),
+            (RealLocation(1), RealLocation(1)),
+            (RealLocation(2), RealLocation(2)),
+            (RealLocation(3), RealLocation(3)),
+            (RealLocation(4), ChangeLocation(4)),
+            (ChangeLocation(5), RealLocation(4)),
+            (RealLocation(5), RealLocation(5)),
+            (RealLocation(6), RealLocation(6)),
+            (RealLocation(7), RealLocation(7)),
         ];
 
         for (i, line) in hunk.lines.iter().enumerate() {
-            let (old_id, new_id) = expected_lines[i];
+            let (mut old_id, mut new_id) = expected_lines[i];
             println!("{line:?}");
-            assert_eq!(line.source_line, old_id.map(|v| v + offset_old));
-            assert_eq!(line.target_line, new_id.map(|v| v + offset_new));
+            match old_id {
+                RealLocation(v) => old_id = RealLocation(v + offset_old),
+                ChangeLocation(v) => old_id = ChangeLocation(v + offset_old),
+                crate::diffs::LineLocation::None => (),
+            }
+            match new_id {
+                RealLocation(v) => new_id = RealLocation(v + offset_new),
+                ChangeLocation(v) => new_id = ChangeLocation(v + offset_new),
+                crate::diffs::LineLocation::None => (),
+            }
+            assert_eq!(line.source_line, old_id);
+            assert_eq!(line.target_line, new_id);
         }
     }
 }
