@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use crate::{Error, ErrorKind};
+use crate::{matching::Matching, Error, ErrorKind};
 
 #[derive(Debug, Clone)]
 pub struct CommitDiff {
@@ -25,6 +25,10 @@ impl CommitDiff {
     #[must_use]
     pub fn is_empty(&self) -> bool {
         self.len() == 0
+    }
+
+    pub fn file_diffs_mut(&mut self) -> &mut [FileDiff] {
+        self.file_diffs.as_mut_slice()
     }
 }
 
@@ -75,7 +79,7 @@ impl TryFrom<String> for CommitDiff {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FileDiff {
     diff_command: DiffCommand,
     source_file: SourceFile,
@@ -119,6 +123,10 @@ impl FileDiff {
 
     pub fn hunks(&self) -> &[Hunk] {
         self.hunks.as_ref()
+    }
+
+    pub fn hunks_mut(&mut self) -> &mut [Hunk] {
+        self.hunks.as_mut_slice()
     }
 
     pub fn changes(&self) -> Changes {
@@ -213,7 +221,7 @@ impl TryFrom<Vec<String>> for FileDiff {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct DiffCommand(pub String);
 
 impl Display for DiffCommand {
@@ -222,7 +230,7 @@ impl Display for DiffCommand {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Hunk {
     source_location: HunkLocation,
     target_location: HunkLocation,
@@ -481,7 +489,7 @@ impl LineType {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SourceFile {
     path: String,
     // TODO: Use actual time value
@@ -521,7 +529,7 @@ impl TryFrom<&str> for SourceFile {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TargetFile {
     path: String,
     // TODO: Use actual time value
