@@ -35,11 +35,11 @@ impl<'a> Matching<'a> {
     }
 }
 
-pub struct LCSMatcher {}
+pub struct LCSMatcher;
 
 impl LCSMatcher {
     pub fn new() -> Self {
-        Self::default()
+        LCSMatcher
     }
 }
 
