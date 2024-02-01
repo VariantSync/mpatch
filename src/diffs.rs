@@ -419,6 +419,24 @@ pub enum LineLocation {
     None,
 }
 
+impl LineLocation {
+    pub fn real_location(&self) -> usize {
+        if let LineLocation::RealLocation(value) = self {
+            *value
+        } else {
+            panic!("not a RealLocation variant");
+        }
+    }
+
+    pub fn change_location(&self) -> usize {
+        if let LineLocation::ChangeLocation(value) = self {
+            *value
+        } else {
+            panic!("not a ChangeLocation variant");
+        }
+    }
+}
+
 impl HunkLine {
     pub fn content(&self) -> &str {
         self.line.as_ref()
@@ -448,6 +466,11 @@ impl HunkLine {
 
     pub fn target_line(&self) -> LineLocation {
         self.target_line
+    }
+
+    /// Returns the content of the hunk line after the meta-symbol that defines the change type
+    pub fn into_text(mut self) -> String {
+        self.line.split_off(1)
     }
 }
 

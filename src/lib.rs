@@ -16,6 +16,7 @@ pub mod diffs;
 pub mod error;
 pub mod files;
 pub mod matching;
+pub mod patch;
 
 pub use diffs::CommitDiff;
 pub use diffs::FileDiff;
