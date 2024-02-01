@@ -53,7 +53,8 @@ fn left_to_right_found() {
         (28, 34),
     ];
 
-    let matching = LCSMatcher::match_files(&file_instance_a, &file_instance_b);
+    let mut matcher = LCSMatcher::default();
+    let matching = matcher.match_files(&file_instance_a, &file_instance_b);
     for (left, right) in left_to_right_expected {
         assert_eq!(matching.right_index_for(left).unwrap(), Some(right));
     }
@@ -94,7 +95,8 @@ fn right_to_left_found() {
         (28, Some(22)),
     ];
 
-    let matching = LCSMatcher::match_files(&file_instance_a, &file_instance_b);
+    let mut matcher = LCSMatcher::default();
+    let matching = matcher.match_files(&file_instance_a, &file_instance_b);
     for (right, left) in right_to_left_expected {
         assert_eq!(matching.left_index_for(right).unwrap(), left);
     }
