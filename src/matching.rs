@@ -3,7 +3,7 @@ use similar::TextDiff;
 use crate::FileArtifact;
 
 pub trait Matcher {
-    fn match_files<'a>(left: &'a FileArtifact, right: &'a FileArtifact) -> Matching<'a>;
+    fn match_files<'a>(&mut self, left: &'a FileArtifact, right: &'a FileArtifact) -> Matching<'a>;
 }
 
 pub struct Matching<'a> {
@@ -50,7 +50,7 @@ impl Default for LCSMatcher {
 }
 
 impl Matcher for LCSMatcher {
-    fn match_files<'a>(left: &'a FileArtifact, right: &'a FileArtifact) -> Matching<'a> {
+    fn match_files<'a>(&mut self, left: &'a FileArtifact, right: &'a FileArtifact) -> Matching<'a> {
         let left_text = left.to_string();
         let right_text = right.to_string();
         let text_diff = TextDiff::from_lines(&left_text, &right_text);

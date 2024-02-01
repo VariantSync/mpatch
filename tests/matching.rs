@@ -8,7 +8,8 @@ fn file_matches_itself() {
     let file_instance_a = FileArtifact::read(SOURCE_FILE_PATH).unwrap();
     let file_instance_b = FileArtifact::read(SOURCE_FILE_PATH).unwrap();
 
-    let matching = LCSMatcher::match_files(&file_instance_a, &file_instance_b);
+    let mut matcher = LCSMatcher::default();
+    let matching = matcher.match_files(&file_instance_a, &file_instance_b);
     for index in 1..file_instance_a.len() {
         assert_eq!(
             matching.left_index_for(index),
