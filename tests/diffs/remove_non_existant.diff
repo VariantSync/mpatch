@@ -1,0 +1,12 @@
+diff -Naur version-0/remove_non_existant.c version-1/remove_non_existant.c
+--- version-0/remove_non_existant.c	2024-02-02 15:12:32.535612751 +0100
++++ version-1/remove_non_existant.c	2024-02-02 15:12:57.222196547 +0100
+@@ -1,8 +1,6 @@
+ #include <stdio.h>
+ int main() {
+   int number;
+-  unsigned long long result;
+-  // Ask the user for input
+   printf("Enter a positive integer: ");
+   scanf("%d", &number);
+   // Check if the user has entered a negative integer

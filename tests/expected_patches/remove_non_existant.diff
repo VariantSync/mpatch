@@ -1,0 +1,7 @@
+diff -Naur version-0/remove_non_existant.c version-1/remove_non_existant.c
+--- version-0/remove_non_existant.c	2024-02-02 15:12:32.535612751 +0100
++++ version-1/remove_non_existant.c	2024-02-02 15:12:57.222196547 +0100
+@@ -4,8 +4,6 @@
+-  unsigned long long result;
+@@ -4,8 +4,6 @@
+-  // Ask the user for input

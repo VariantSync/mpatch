@@ -27,6 +27,13 @@ const MIXED_DIFF: &str = "tests/diffs/mixed.diff";
 const EXPECTED_MIXED_PATCH: &str = "tests/expected_patches/mixed.diff";
 const EXPECTED_MIXED_RESULT: &str = "tests/samples/target_variant/version-1/mixed.c";
 
+const NON_EXISTANT_SOURCE: &str = "tests/samples/source_variant/version-0/remove_non_existant.c";
+const NON_EXISTANT_TARGET: &str = "tests/samples/target_variant/version-0/remove_non_existant.c";
+const NON_EXISTANT_DIFF: &str = "tests/diffs/remove_non_existant.diff";
+const EXPECTED_NON_EXISTANT_PATCH: &str = "tests/expected_patches/remove_non_existant.diff";
+const EXPECTED_NON_EXISTANT_RESULT: &str =
+    "tests/samples/target_variant/version-1/remove_non_existant.c";
+
 fn read_patch(path: &str) -> Patch {
     let diff = CommitDiff::read(path).unwrap();
     Patch::from(diff.file_diffs().first().unwrap().clone())
@@ -59,6 +66,16 @@ fn substractive_alignment() {
         SUBSTRACTIVE_TARGET,
         SUBSTRACTIVE_DIFF,
         EXPECTED_SUBSTRACTIVE_PATCH,
+    );
+}
+
+#[test]
+fn non_existant_alignment() {
+    run_alignment_test(
+        NON_EXISTANT_SOURCE,
+        NON_EXISTANT_TARGET,
+        NON_EXISTANT_DIFF,
+        EXPECTED_NON_EXISTANT_PATCH,
     );
 }
 
@@ -110,6 +127,13 @@ fn apply_substractive() {
 fn apply_mixed() {
     let aligned_patch = get_aligned_patch(MIXED_SOURCE, MIXED_TARGET, MIXED_DIFF);
     run_application_test(aligned_patch, EXPECTED_MIXED_RESULT);
+}
+
+#[test]
+fn apply_non_existant() {
+    let aligned_patch =
+        get_aligned_patch(NON_EXISTANT_SOURCE, NON_EXISTANT_TARGET, NON_EXISTANT_DIFF);
+    run_application_test(aligned_patch, EXPECTED_NON_EXISTANT_RESULT);
 }
 
 fn get_aligned_patch(source: &str, target: &str, diff: &str) -> AlignedPatch {
