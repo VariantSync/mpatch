@@ -11,10 +11,7 @@ fn file_matches_itself() {
     let mut matcher = LCSMatcher;
     let matching = matcher.match_files(&file_instance_a, &file_instance_b);
     for index in 1..file_instance_a.len() {
-        assert_eq!(
-            matching.source_index_for(index),
-            matching.target_index_for(index)
-        )
+        assert_eq!(matching.source_index(index), matching.target_index(index))
     }
 }
 
@@ -56,7 +53,7 @@ fn left_to_right_found() {
     let mut matcher = LCSMatcher;
     let matching = matcher.match_files(&file_instance_a, &file_instance_b);
     for (left, right) in left_to_right_expected {
-        assert_eq!(matching.target_index_for(left).unwrap(), Some(right));
+        assert_eq!(matching.target_index(left).unwrap(), Some(right));
     }
 }
 
@@ -98,6 +95,6 @@ fn right_to_left_found() {
     let mut matcher = LCSMatcher;
     let matching = matcher.match_files(&file_instance_a, &file_instance_b);
     for (right, left) in right_to_left_expected {
-        assert_eq!(matching.source_index_for(right).unwrap(), left);
+        assert_eq!(matching.source_index(right).unwrap(), left);
     }
 }

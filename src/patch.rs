@@ -1,19 +1,44 @@
 use crate::{matching::Matching, FileArtifact, FileDiff};
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Patch {
     changes: Vec<Change>,
 }
 
 impl Patch {
-    pub fn align_to_target(self, target: FileArtifact, matching: &Matching) -> AlignedPatch {
-        todo!();
+    pub fn align_to_target(self, target_matching: Matching) -> AlignedPatch {
+        let mut changes = Vec::with_capacity(self.changes.len());
+        for mut change in self.changes {
+            let target_line_number = match change.change_type {
+                ChangeType::Add => target_matching
+                    .search_target_index(change.line_number)
+                    .map(|match_id| match_id.unwrap_or(0)),
+                ChangeType::Remove => target_matching
+                    .target_index(change.line_number)
+                    .expect("the source line was never matched"),
+            };
+            if let Some(target_line_number) = target_line_number {
+                change.line_number = target_line_number;
+                changes.push(change);
+            }
+        }
+        AlignedPatch {
+            changes,
+            // TODO: Handle differently; ideally, the matching holds the artifacts directly
+            target: target_matching.target().clone(),
+        }
     }
 
-    pub fn align_to_multiple_targets(
-        &self,
-        targets: Vec<(FileArtifact, &Matching)>,
-    ) -> Vec<AlignedPatch> {
-        todo!();
+    pub fn align_to_multiple_targets(&self, target_matchings: Vec<Matching>) -> Vec<AlignedPatch> {
+        let mut aligned_patches = Vec::with_capacity(target_matchings.len());
+        for matching in target_matchings.into_iter() {
+            aligned_patches.push(self.clone().align_to_target(matching));
+        }
+        aligned_patches
+    }
+
+    pub fn changes(&self) -> &[Change] {
+        self.changes.as_ref()
     }
 }
 
@@ -46,9 +71,20 @@ impl From<FileDiff> for Patch {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AlignedPatch {
     changes: Vec<Change>,
     target: FileArtifact,
+}
+
+impl AlignedPatch {
+    pub fn changes(&self) -> &[Change] {
+        self.changes.as_ref()
+    }
+
+    pub fn target(&self) -> &FileArtifact {
+        &self.target
+    }
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -66,7 +102,7 @@ pub enum ChangeType {
 
 #[cfg(test)]
 mod tests {
-    use crate::{CommitDiff, FileDiff};
+    use crate::CommitDiff;
 
     use super::{Change, ChangeType, Patch};
 
@@ -84,7 +120,7 @@ mod tests {
             Change {
                 line: "ADDED".to_string(),
                 change_type: ChangeType::Add,
-                line_number: 4,
+                line_number: 5,
             },
             Change {
                 line: "REMOVED".to_string(),
@@ -94,7 +130,7 @@ mod tests {
             Change {
                 line: "ADDED".to_string(),
                 change_type: ChangeType::Add,
-                line_number: 26,
+                line_number: 27,
             },
         ];
 

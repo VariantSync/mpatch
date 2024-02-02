@@ -1,6 +1,6 @@
 use std::{collections::BTreeMap, fmt::Display, fs};
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FileArtifact {
     path: String,
     lines: BTreeMap<usize, String>,

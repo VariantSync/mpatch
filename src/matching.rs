@@ -20,7 +20,7 @@ pub struct Matching<'a> {
 pub type MatchId = Option<usize>;
 
 impl<'a> Matching<'a> {
-    pub fn target_index_for(&self, source_index: usize) -> Option<MatchId> {
+    pub fn target_index(&self, source_index: usize) -> Option<MatchId> {
         // To represent line numbers in files we offset the index by '1'
         // A negative offset is applied to the input index (e.g., line 1 is stored at index 0)
         // A positive offset is applied to the retrieved counterpart index (e.g., the counterpart
@@ -31,7 +31,7 @@ impl<'a> Matching<'a> {
             .map(|v| v.map(|v| v + 1))
     }
 
-    pub fn source_index_for(&self, target_index: usize) -> Option<MatchId> {
+    pub fn source_index(&self, target_index: usize) -> Option<MatchId> {
         self.target_to_source
             .get(target_index - 1)
             .copied()
@@ -44,6 +44,34 @@ impl<'a> Matching<'a> {
 
     pub fn target(&self) -> &FileArtifact {
         self.target
+    }
+
+    pub(crate) fn search_target_index(&self, line_number: usize) -> Option<MatchId> {
+        let mut line_number = line_number;
+
+        // Search for the closest context line above the change; i.e., key and value must both be
+        // Some(...)
+        while line_number > 0
+            && match self.target_index(line_number) {
+                // If a source line with the line number exists, we continue the iteration if it
+                // has no matched line in the target
+                Some(match_id) => match_id.is_none(),
+                // No source line with this line number exists
+                None => true,
+            }
+        {
+            line_number -= 1;
+        }
+
+        if line_number == 0 {
+            // Line numbers start at '1', so there is no valid target index for '0'
+            None
+        } else {
+            let target_line = self.target_index(line_number);
+            // The result must be Some(...) in all cases
+            assert!(target_line.is_some());
+            target_line
+        }
     }
 }
 
