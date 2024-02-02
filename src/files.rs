@@ -3,10 +3,17 @@ use std::{collections::BTreeMap, fmt::Display, fs};
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FileArtifact {
     path: String,
-    lines: BTreeMap<usize, String>,
+    lines: Vec<String>,
 }
 
 impl FileArtifact {
+    pub fn from_lines(path: &str, lines: Vec<String>) -> FileArtifact {
+        FileArtifact {
+            path: path.to_string(),
+            lines,
+        }
+    }
+
     /// Read the content of the file under path and create a new FileArtifact from it.
     pub fn read(path: &str) -> Result<FileArtifact, std::io::Error> {
         let file_content = fs::read_to_string(path)?;
@@ -36,25 +43,32 @@ impl FileArtifact {
 
     /// Individual function that can be called in unit tests without requiring a test file
     fn parse_content(path: &str, file_content: String) -> Self {
-        let mut lines = BTreeMap::new();
-        for (line_number, line) in file_content
-            .lines()
-            .map(|l| l.to_string())
-            .enumerate()
-            .map(|(id, l)| (id + 1, l))
-        {
-            lines.insert(line_number, line);
+        let mut lines = vec![];
+        for line in file_content.lines().map(|l| l.to_string()) {
+            lines.push(line);
         }
         FileArtifact {
             path: path.to_string(),
             lines,
         }
     }
+
+    pub fn lines(&self) -> &[String] {
+        &self.lines
+    }
+
+    pub fn into_lines(self) -> Vec<String> {
+        self.lines
+    }
+
+    pub fn path(&self) -> &str {
+        &self.path
+    }
 }
 
 impl Display for FileArtifact {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut lines = self.lines.values();
+        let mut lines = self.lines.iter();
         // print the first line without newline character
         if let Some(line) = lines.next() {
             write!(f, "{line}")?;
