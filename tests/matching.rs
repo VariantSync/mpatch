@@ -8,12 +8,12 @@ fn file_matches_itself() {
     let file_instance_a = FileArtifact::read(SOURCE_FILE_PATH).unwrap();
     let file_instance_b = FileArtifact::read(SOURCE_FILE_PATH).unwrap();
 
-    let mut matcher = LCSMatcher::default();
+    let mut matcher = LCSMatcher;
     let matching = matcher.match_files(&file_instance_a, &file_instance_b);
     for index in 1..file_instance_a.len() {
         assert_eq!(
-            matching.left_index_for(index),
-            matching.right_index_for(index)
+            matching.source_index_for(index),
+            matching.target_index_for(index)
         )
     }
 }
@@ -53,10 +53,10 @@ fn left_to_right_found() {
         (28, 34),
     ];
 
-    let mut matcher = LCSMatcher::default();
+    let mut matcher = LCSMatcher;
     let matching = matcher.match_files(&file_instance_a, &file_instance_b);
     for (left, right) in left_to_right_expected {
-        assert_eq!(matching.right_index_for(left).unwrap(), Some(right));
+        assert_eq!(matching.target_index_for(left).unwrap(), Some(right));
     }
 }
 
@@ -95,9 +95,9 @@ fn right_to_left_found() {
         (28, Some(22)),
     ];
 
-    let mut matcher = LCSMatcher::default();
+    let mut matcher = LCSMatcher;
     let matching = matcher.match_files(&file_instance_a, &file_instance_b);
     for (right, left) in right_to_left_expected {
-        assert_eq!(matching.left_index_for(right).unwrap(), left);
+        assert_eq!(matching.source_index_for(right).unwrap(), left);
     }
 }

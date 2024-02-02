@@ -3,35 +3,47 @@ use similar::TextDiff;
 use crate::FileArtifact;
 
 pub trait Matcher {
-    fn match_files<'a>(&mut self, left: &'a FileArtifact, right: &'a FileArtifact) -> Matching<'a>;
+    fn match_files<'a>(
+        &mut self,
+        source: &'a FileArtifact,
+        target: &'a FileArtifact,
+    ) -> Matching<'a>;
 }
 
 pub struct Matching<'a> {
-    left: &'a FileArtifact,
-    right: &'a FileArtifact,
-    left_to_right: Vec<MatchId>,
-    right_to_left: Vec<MatchId>,
+    source: &'a FileArtifact,
+    target: &'a FileArtifact,
+    source_to_target: Vec<MatchId>,
+    target_to_source: Vec<MatchId>,
 }
 
 pub type MatchId = Option<usize>;
 
 impl<'a> Matching<'a> {
-    pub fn right_index_for(&self, left_index: usize) -> Option<MatchId> {
+    pub fn target_index_for(&self, source_index: usize) -> Option<MatchId> {
         // To represent line numbers in files we offset the index by '1'
         // A negative offset is applied to the input index (e.g., line 1 is stored at index 0)
         // A positive offset is applied to the retrieved counterpart index (e.g., the counterpart
         // of line 1 is also line 1, which is stored as a 0).
-        self.left_to_right
-            .get(left_index - 1)
+        self.source_to_target
+            .get(source_index - 1)
             .copied()
             .map(|v| v.map(|v| v + 1))
     }
 
-    pub fn left_index_for(&self, right_index: usize) -> Option<MatchId> {
-        self.right_to_left
-            .get(right_index - 1)
+    pub fn source_index_for(&self, target_index: usize) -> Option<MatchId> {
+        self.target_to_source
+            .get(target_index - 1)
             .copied()
             .map(|v| v.map(|v| v + 1))
+    }
+
+    pub fn source(&self) -> &FileArtifact {
+        self.source
+    }
+
+    pub fn target(&self) -> &FileArtifact {
+        self.target
     }
 }
 
@@ -68,10 +80,10 @@ impl Matcher for LCSMatcher {
             }
         }
         Matching {
-            left,
-            right,
-            left_to_right,
-            right_to_left,
+            source: left,
+            target: right,
+            source_to_target: left_to_right,
+            target_to_source: right_to_left,
         }
     }
 }
