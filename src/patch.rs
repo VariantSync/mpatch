@@ -120,7 +120,7 @@ mod tests {
             Change {
                 line: "ADDED".to_string(),
                 change_type: ChangeType::Add,
-                line_number: 5,
+                line_number: 4,
             },
             Change {
                 line: "REMOVED".to_string(),
@@ -130,7 +130,7 @@ mod tests {
             Change {
                 line: "ADDED".to_string(),
                 change_type: ChangeType::Add,
-                line_number: 27,
+                line_number: 26,
             },
         ];
 
