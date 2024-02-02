@@ -85,6 +85,42 @@ impl AlignedPatch {
     pub fn target(&self) -> &FileArtifact {
         &self.target
     }
+
+    pub fn apply(self) -> FileArtifact {
+        let ((path, lines), mut changes) = (
+            (self.target.into_path_and_lines()),
+            self.changes.into_iter().peekable(),
+        );
+
+        let mut line_number = 1;
+        let mut patched_lines = vec![];
+        'lines_loop: for line in lines {
+            while match changes.peek() {
+                Some(change) => change.line_number == line_number,
+                None => false,
+            } {
+                let change = changes.next().expect("there should be a change to extract");
+                match change.change_type {
+                    ChangeType::Add => {
+                        // add this line to the vector of patched lines
+                        patched_lines.push(change.line);
+                        line_number += 1;
+                    }
+                    ChangeType::Remove => {
+                        // remove this line by skipping it
+                        assert_eq!(line, change.line);
+                        continue 'lines_loop;
+                    }
+                }
+            }
+            // once all changes for this line_number have been applied, we can add the next
+            // unchanged line
+            patched_lines.push(line);
+            line_number += 1;
+        }
+
+        FileArtifact::from_lines(path, patched_lines)
+    }
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]

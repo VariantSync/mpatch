@@ -7,11 +7,8 @@ pub struct FileArtifact {
 }
 
 impl FileArtifact {
-    pub fn from_lines(path: &str, lines: Vec<String>) -> FileArtifact {
-        FileArtifact {
-            path: path.to_string(),
-            lines,
-        }
+    pub fn from_lines(path: String, lines: Vec<String>) -> FileArtifact {
+        FileArtifact { path, lines }
     }
 
     /// Read the content of the file under path and create a new FileArtifact from it.
@@ -59,6 +56,10 @@ impl FileArtifact {
 
     pub fn into_lines(self) -> Vec<String> {
         self.lines
+    }
+
+    pub fn into_path_and_lines(self) -> (String, Vec<String>) {
+        (self.path, self.lines)
     }
 
     pub fn path(&self) -> &str {
