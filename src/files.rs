@@ -1,4 +1,4 @@
-use std::{collections::BTreeMap, fmt::Display, fs};
+use std::{fmt::Display, fs};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FileArtifact {
