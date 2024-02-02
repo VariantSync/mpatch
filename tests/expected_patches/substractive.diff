@@ -1,0 +1,24 @@
+diff -Naur version-0/substractive.c version-1/substractive.c
+--- version-0/substractive.c	2024-02-02 09:44:33.536673092 +0100
++++ version-1/substractive.c	2024-02-02 09:45:34.126673332 +0100
+@@ -3,7 +3,7 @@
+ unsigned long long factorial(int n);
+ int main() {
+   int number;
+-  unsigned long long result;
++  unsigned long long res;
+   // Ask the user for input
+   printf("Enter a positive integer: ");
+   scanf("%d", &number);
+@@ -12,9 +12,9 @@
+     printf("Factorial of a negative number doesn't exist.\n");
+   } else {
+     // Calculate factorial
+-    result = factorial(number);
++    res = factorial(number);
+     // Display the result
+-    printf("Factorial of %d is %llu\n", number, result);
++    printf("Factorial of %d is %llu\n", number, res);
+   }
+   return 0;
+ }

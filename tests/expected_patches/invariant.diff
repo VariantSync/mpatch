@@ -1,0 +1,12 @@
+diff -Naur version-0/invariant.c version-1/invariant.c
+--- version-0/invariant.c	2024-02-01 13:40:31.133338653 +0100
++++ version-1/invariant.c	2024-02-01 13:41:52.086672306 +0100
+@@ -6,7 +6,7 @@
+-  unsigned long long result;
++  unsigned long long res;
+@@ -15,9 +15,9 @@
+-    result = factorial(number);
++    res = factorial(number);
+     // Display the result
+-    printf("Factorial of %d is %llu\n", number, result);
++    printf("Factorial of %d is %llu\n", number, res);
