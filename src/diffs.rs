@@ -129,7 +129,7 @@ impl FileDiff {
         self.hunks.as_mut_slice()
     }
 
-    pub fn changes(&self) -> Changes {
+    pub fn changes(&self) -> ChangedLines {
         let changes: Vec<&HunkLine> = self
             .hunks()
             .iter()
@@ -138,10 +138,10 @@ impl FileDiff {
             // reverse the order so that changes can be easily popped from the vec
             .rev()
             .collect();
-        Changes { changes }
+        ChangedLines { changes }
     }
 
-    pub fn into_changes(self) -> IntoChanges {
+    pub fn into_changes(self) -> IntoChangedLines {
         let changes: Vec<HunkLine> = self
             .hunks
             .into_iter()
@@ -150,17 +150,17 @@ impl FileDiff {
             // reverse the order so that changes can be easily popped from the vec
             .rev()
             .collect();
-        IntoChanges { changes }
+        IntoChangedLines { changes }
     }
 }
 
-pub struct Changes<'a> {
+pub struct ChangedLines<'a> {
     // changes in reverse order
     // the order is reversed to allow pop operations
     changes: Vec<&'a HunkLine>,
 }
 
-impl<'a> Iterator for Changes<'a> {
+impl<'a> Iterator for ChangedLines<'a> {
     type Item = &'a HunkLine;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -168,13 +168,13 @@ impl<'a> Iterator for Changes<'a> {
     }
 }
 
-pub struct IntoChanges {
+pub struct IntoChangedLines {
     // changes in reverse order
     // the order is reversed to allow pop operations
     changes: Vec<HunkLine>,
 }
 
-impl Iterator for IntoChanges {
+impl Iterator for IntoChangedLines {
     type Item = HunkLine;
 
     fn next(&mut self) -> Option<Self::Item> {

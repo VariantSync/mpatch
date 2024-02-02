@@ -1,7 +1,7 @@
 use std::fs;
 
 use mpatch::{
-    diffs::{Changes, LineLocation, LineType},
+    diffs::{ChangedLines, LineLocation, LineType},
     CommitDiff, FileDiff,
 };
 
@@ -203,7 +203,7 @@ fn retrieve_changes_per_file() {
     assert_eq!((2, 2), count_changes(changes));
 }
 
-fn count_changes(changes: Changes) -> (usize, usize) {
+fn count_changes(changes: ChangedLines) -> (usize, usize) {
     let mut add_count = 0;
     let mut remove_count = 0;
     for change in changes {
@@ -269,7 +269,7 @@ fn locate_changes_per_file() {
     );
 }
 
-fn change_locations(changes: Changes) -> Vec<(LineLocation, LineLocation)> {
+fn change_locations(changes: ChangedLines) -> Vec<(LineLocation, LineLocation)> {
     let mut locations = vec![];
     for change in changes {
         locations.push((change.source_line(), change.target_line()));
