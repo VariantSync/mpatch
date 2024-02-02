@@ -1,13 +1,13 @@
 diff -Naur version-0/additive.c version-1/additive.c
 --- version-0/additive.c	2024-02-02 09:42:55.533339372 +0100
 +++ version-1/additive.c	2024-02-02 09:45:16.210006595 +0100
-@@ -15,7 +15,7 @@
+@@ -16,7 +16,7 @@
 -  unsigned long long result;
 +  unsigned long long res;
-@@ -24,9 +24,9 @@
+@@ -25,9 +25,9 @@
 -    result = factorial(number);
 +    res = factorial(number);
-@@ -26,9 +26,9 @@
+@@ -27,9 +27,9 @@
 -    printf("Factorial of %d is %llu\n", number, result);
 +    printf("Factorial of %d is %llu\n", number, res);
  }

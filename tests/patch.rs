@@ -16,13 +16,18 @@ const SUBSTRACTIVE_TARGET: &str = "tests/samples/target_variant/version-0/substr
 const SUBSTRACTIVE_DIFF: &str = "tests/diffs/substractive.diff";
 const EXPECTED_SUBSTRACTIVE_PATCH: &str = "tests/expected_patches/substractive.diff";
 
+const MIXED_SOURCE: &str = "tests/samples/source_variant/version-0/mixed.c";
+const MIXED_TARGET: &str = "tests/samples/target_variant/version-0/mixed.c";
+const MIXED_DIFF: &str = "tests/diffs/mixed.diff";
+const EXPECTED_MIXED_PATCH: &str = "tests/expected_patches/mixed.diff";
+
 fn read_patch(path: &str) -> Patch {
     let diff = CommitDiff::read(path).unwrap();
     Patch::from(diff.file_diffs().first().unwrap().clone())
 }
 
 #[test]
-fn alignment_unchanged() {
+fn invariant_alignment() {
     run_alignment_test(
         INVARIANT_SOURCE,
         INVARIANT_TARGET,
@@ -53,7 +58,7 @@ fn substractive_alignment() {
 
 #[test]
 fn mixed_alignment() {
-    unimplemented!();
+    run_alignment_test(MIXED_SOURCE, MIXED_TARGET, MIXED_DIFF, EXPECTED_MIXED_PATCH);
 }
 
 fn run_alignment_test(source: &str, target: &str, diff: &str, expected_patch: &str) {
