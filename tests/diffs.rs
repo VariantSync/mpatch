@@ -226,7 +226,7 @@ fn locate_changes_per_file() {
     let changes = file_diff.changes();
     let mut locations = change_locations(changes);
     assert_eq!(
-        (ChangeLocation(1), RealLocation(1)),
+        (ChangeLocation(0), RealLocation(1)),
         locations.pop().unwrap()
     );
 
@@ -243,7 +243,7 @@ fn locate_changes_per_file() {
         locations.pop().unwrap()
     );
     assert_eq!(
-        (ChangeLocation(4), RealLocation(3)),
+        (ChangeLocation(5), RealLocation(3)),
         locations.pop().unwrap()
     );
 
@@ -252,7 +252,7 @@ fn locate_changes_per_file() {
     let mut locations = change_locations(changes);
     locations.reverse();
     assert_eq!(
-        (RealLocation(4), ChangeLocation(3)),
+        (RealLocation(4), ChangeLocation(4)),
         locations.pop().unwrap()
     );
     assert_eq!(
@@ -260,11 +260,11 @@ fn locate_changes_per_file() {
         locations.pop().unwrap()
     );
     assert_eq!(
-        (RealLocation(26), ChangeLocation(25)),
+        (RealLocation(26), ChangeLocation(26)),
         locations.pop().unwrap()
     );
     assert_eq!(
-        (ChangeLocation(26), RealLocation(26)),
+        (ChangeLocation(27), RealLocation(26)),
         locations.pop().unwrap()
     );
 }
