@@ -8,6 +8,8 @@ pub struct Patch {
 impl Patch {
     pub fn align_to_target(self, target_matching: Matching) -> AlignedPatch {
         let mut changes = Vec::with_capacity(self.changes.len());
+        // TODO: removed lines that have no match in the target are rejected
+        let mut rejected_changes = vec![];
         for mut change in self.changes {
             let target_line_number = match change.change_type {
                 ChangeType::Add => target_matching
@@ -24,6 +26,7 @@ impl Patch {
         }
         AlignedPatch {
             changes,
+            rejected_changes,
             // TODO: Handle differently; ideally, the matching holds the artifacts directly
             target: target_matching.target().clone(),
         }
@@ -74,6 +77,7 @@ impl From<FileDiff> for Patch {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AlignedPatch {
     changes: Vec<Change>,
+    rejected_changes: Vec<Change>,
     target: FileArtifact,
 }
 
@@ -86,7 +90,7 @@ impl AlignedPatch {
         &self.target
     }
 
-    pub fn apply(self) -> FileArtifact {
+    pub fn apply(self) -> PatchOutcome {
         let ((path, lines), mut changes) = (
             (self.target.into_path_and_lines()),
             self.changes.into_iter().peekable(),
@@ -119,7 +123,25 @@ impl AlignedPatch {
             line_number += 1;
         }
 
-        FileArtifact::from_lines(path, patched_lines)
+        PatchOutcome {
+            patched_file: FileArtifact::from_lines(path, patched_lines),
+            rejected_changes: self.rejected_changes,
+        }
+    }
+}
+
+pub struct PatchOutcome {
+    patched_file: FileArtifact,
+    rejected_changes: Vec<Change>,
+}
+
+impl PatchOutcome {
+    pub fn patched_file(&self) -> &FileArtifact {
+        &self.patched_file
+    }
+
+    pub fn rejected_changes(&self) -> &[Change] {
+        self.rejected_changes.as_ref()
     }
 }
 
