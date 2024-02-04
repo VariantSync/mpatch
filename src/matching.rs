@@ -51,15 +51,7 @@ impl<'a> Matching<'a> {
 
         // Search for the closest context line above the change; i.e., key and value must both be
         // Some(...)
-        while line_number > 0
-            && match self.target_index(line_number) {
-                // If a source line with the line number exists, we continue the iteration if it
-                // has no matched line in the target
-                Some(match_id) => match_id.is_none(),
-                // No source line with this line number exists
-                None => true,
-            }
-        {
+        while line_number > 0 && self.target_index(line_number).and_then(|val| val).is_none() {
             line_number -= 1;
         }
 
