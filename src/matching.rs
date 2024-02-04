@@ -51,7 +51,7 @@ impl<'a> Matching<'a> {
 
         // Search for the closest context line above the change; i.e., key and value must both be
         // Some(...)
-        while line_number > 0 && self.target_index(line_number).and_then(|val| val).is_none() {
+        while line_number > 0 && self.target_index(line_number).flatten().is_none() {
             line_number -= 1;
         }
 
