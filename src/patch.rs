@@ -1,11 +1,11 @@
 use crate::{matching::Matching, FileArtifact, FileDiff};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Patch {
+pub struct FilePatch {
     changes: Vec<Change>,
 }
 
-impl Patch {
+impl FilePatch {
     pub fn align_to_target(self, target_matching: Matching) -> AlignedPatch {
         let mut changes = Vec::with_capacity(self.changes.len());
         let mut rejected_changes = vec![];
@@ -45,7 +45,7 @@ impl Patch {
     }
 }
 
-impl From<FileDiff> for Patch {
+impl From<FileDiff> for FilePatch {
     fn from(file_diff: FileDiff) -> Self {
         let mut changes = vec![];
         for line in file_diff.into_changes() {
@@ -70,7 +70,7 @@ impl From<FileDiff> for Patch {
             });
         }
 
-        Patch { changes }
+        FilePatch { changes }
     }
 }
 
@@ -162,7 +162,7 @@ pub enum ChangeType {
 mod tests {
     use crate::CommitDiff;
 
-    use super::{Change, ChangeType, Patch};
+    use super::{Change, ChangeType, FilePatch};
 
     #[test]
     fn patch_from_diff() {
@@ -192,7 +192,7 @@ mod tests {
             },
         ];
 
-        let patch = Patch::from(file_diff);
+        let patch = FilePatch::from(file_diff);
 
         for (change, expected_change) in patch.changes.into_iter().zip(expected_changes.into_iter())
         {

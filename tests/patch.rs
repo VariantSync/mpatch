@@ -1,5 +1,5 @@
 use mpatch::{
-    patch::{AlignedPatch, Patch},
+    patch::{AlignedPatch, FilePatch},
     CommitDiff, FileArtifact, LCSMatcher, Matcher,
 };
 
@@ -38,9 +38,9 @@ const EXPECTED_NON_EXISTANT_PATCH: &str = "tests/expected_patches/remove_non_exi
 const EXPECTED_NON_EXISTANT_RESULT: &str =
     "tests/samples/target_variant/version-1/remove_non_existant.c";
 
-fn read_patch(path: &str) -> Patch {
+fn read_patch(path: &str) -> FilePatch {
     let diff = CommitDiff::read(path).unwrap();
-    Patch::from(diff.file_diffs().first().unwrap().clone())
+    FilePatch::from(diff.file_diffs().first().unwrap().clone())
 }
 
 #[test]
