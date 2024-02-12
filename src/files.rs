@@ -1,4 +1,8 @@
-use std::{fmt::Display, fs};
+use std::{
+    fmt::Display,
+    fs,
+    path::{Path, PathBuf},
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FileArtifact {
@@ -81,9 +85,27 @@ impl Display for FileArtifact {
     }
 }
 
+pub trait StrippedPath {
+    fn strip(&mut self, strip: usize);
+
+    fn from_stripped(other: &Path, strip: usize) -> PathBuf;
+}
+
+impl StrippedPath for PathBuf {
+    fn strip(&mut self, strip: usize) {
+        *self = self.iter().skip(strip).collect();
+    }
+
+    fn from_stripped(other: &Path, strip: usize) -> PathBuf {
+        other.iter().skip(strip).collect()
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use super::FileArtifact;
+    use std::{path::PathBuf, str::FromStr};
+
+    use super::{FileArtifact, StrippedPath};
 
     #[test]
     // Assure that the content of a file is not manipulated by pure read and write operations
@@ -98,5 +120,32 @@ mod tests {
         let artifact = FileArtifact::parse_content("UNUSED PATH", test_content.clone());
 
         assert_eq!(test_content, artifact.to_string());
+    }
+
+    #[test]
+    fn path_strip_single() {
+        let mut path = PathBuf::from_str("hello/world").unwrap();
+        path.strip(1);
+        assert_eq!(path.to_str().unwrap(), "world");
+        path.strip(1);
+        assert_eq!(path.to_str().unwrap(), "");
+    }
+
+    #[test]
+    fn path_strip_multiple() {
+        let mut path = PathBuf::from_str("hello/world/you//are/beautiful").unwrap();
+        path.strip(2);
+        assert_eq!(path.to_str().unwrap(), "you/are/beautiful");
+        path.strip(3);
+        assert_eq!(path.to_str().unwrap(), "");
+    }
+
+    #[test]
+    fn from_stripped() {
+        let path = PathBuf::from_str("hello/world").unwrap();
+        let stripped = PathBuf::from_stripped(&path, 1);
+        assert_eq!(stripped.to_str().unwrap(), "world");
+        let stripped = PathBuf::from_stripped(&path, 2);
+        assert_eq!(stripped.to_str().unwrap(), "");
     }
 }
