@@ -6,6 +6,11 @@ use mpatch::{
 // TODO: Test multi-alignment
 // TODO: Test file creation
 // TODO: Test file removal
+// TODO: Test file renaming
+// TODO: Test file permission change
+// TODO: Test patch application to entire directory
+// TODO: Test missing target files
+// TODO: Test rejects file writing
 
 const INVARIANT_SOURCE: &str = "tests/samples/source_variant/version-0/invariant.c";
 const INVARIANT_TARGET: &str = "tests/samples/target_variant/version-0/invariant.c";
