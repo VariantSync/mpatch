@@ -8,12 +8,11 @@ pub struct Patch {
 impl Patch {
     pub fn align_to_target(self, target_matching: Matching) -> AlignedPatch {
         let mut changes = Vec::with_capacity(self.changes.len());
-        // TODO: removed lines that have no match in the target are rejected
         let mut rejected_changes = vec![];
         for mut change in self.changes {
             let target_line_number = match change.change_type {
                 ChangeType::Add => target_matching
-                    .search_target_index(change.line_number)
+                    .target_index_fuzzy(change.line_number)
                     .map(|match_id| match_id.unwrap_or(0)),
                 ChangeType::Remove => target_matching
                     .target_index(change.line_number)
@@ -22,6 +21,8 @@ impl Patch {
             if let Some(target_line_number) = target_line_number {
                 change.line_number = target_line_number;
                 changes.push(change);
+            } else {
+                rejected_changes.push(change);
             }
         }
         AlignedPatch {

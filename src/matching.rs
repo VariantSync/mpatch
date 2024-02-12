@@ -46,7 +46,7 @@ impl<'a> Matching<'a> {
         self.target
     }
 
-    pub(crate) fn search_target_index(&self, line_number: usize) -> Option<MatchId> {
+    pub(crate) fn target_index_fuzzy(&self, line_number: usize) -> Option<MatchId> {
         let mut line_number = line_number;
 
         // Search for the closest context line above the change; i.e., key and value must both be
