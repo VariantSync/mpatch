@@ -93,7 +93,7 @@ fn run_alignment_test(source: &str, target: &str, diff: &str, expected_patch: &s
     let target = FileArtifact::read(target).unwrap();
 
     let mut matcher = LCSMatcher;
-    let matching = matcher.match_files(&source, &target);
+    let matching = matcher.match_files(source, target);
 
     let patch = read_patch(diff);
     let expected_patch = read_patch(expected_patch);
@@ -145,7 +145,7 @@ fn get_aligned_patch(source: &str, target: &str, diff: &str) -> AlignedPatch {
     let target = FileArtifact::read(target).unwrap();
 
     let mut matcher = LCSMatcher;
-    let matching = matcher.match_files(&source, &target);
+    let matching = matcher.match_files(source, target);
 
     let patch = read_patch(diff);
     patch.align_to_target(matching)

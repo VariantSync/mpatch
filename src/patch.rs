@@ -28,8 +28,7 @@ impl Patch {
         AlignedPatch {
             changes,
             rejected_changes,
-            // TODO: Handle differently; ideally, the matching holds the artifacts directly
-            target: target_matching.target().clone(),
+            target: target_matching.into_target(),
         }
     }
 

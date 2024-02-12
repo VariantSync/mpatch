@@ -3,23 +3,19 @@ use similar::TextDiff;
 use crate::FileArtifact;
 
 pub trait Matcher {
-    fn match_files<'a>(
-        &mut self,
-        source: &'a FileArtifact,
-        target: &'a FileArtifact,
-    ) -> Matching<'a>;
+    fn match_files(&mut self, source: FileArtifact, target: FileArtifact) -> Matching;
 }
 
-pub struct Matching<'a> {
-    source: &'a FileArtifact,
-    target: &'a FileArtifact,
+pub struct Matching {
+    source: FileArtifact,
+    target: FileArtifact,
     source_to_target: Vec<MatchId>,
     target_to_source: Vec<MatchId>,
 }
 
 pub type MatchId = Option<usize>;
 
-impl<'a> Matching<'a> {
+impl Matching {
     pub fn target_index(&self, source_index: usize) -> Option<MatchId> {
         // To represent line numbers in files we offset the index by '1'
         // A negative offset is applied to the input index (e.g., line 1 is stored at index 0)
@@ -39,10 +35,18 @@ impl<'a> Matching<'a> {
     }
 
     pub fn source(&self) -> &FileArtifact {
-        self.source
+        &self.source
     }
 
     pub fn target(&self) -> &FileArtifact {
+        &self.target
+    }
+
+    pub fn into_source(self) -> FileArtifact {
+        self.source
+    }
+
+    pub fn into_target(self) -> FileArtifact {
         self.target
     }
 
@@ -82,7 +86,7 @@ impl Default for LCSMatcher {
 }
 
 impl Matcher for LCSMatcher {
-    fn match_files<'a>(&mut self, left: &'a FileArtifact, right: &'a FileArtifact) -> Matching<'a> {
+    fn match_files(&mut self, left: FileArtifact, right: FileArtifact) -> Matching {
         let left_text = left.to_string();
         let right_text = right.to_string();
         let text_diff = TextDiff::from_lines(&left_text, &right_text);
