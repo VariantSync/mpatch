@@ -1,0 +1,59 @@
+diff -Naur version-0/added_file.c version-1/added_file.c
+--- version-0/added_file.c	1970-01-01 01:00:00.000000000 +0100
++++ version-1/added_file.c	2024-02-13 10:15:50.093574971 +0100
+@@ -0,0 +1,9 @@
++
++// Function to calculate the factorial of a number
++unsigned long long factorial(int n) {
++  if (n == 0) {
++    return 1; // Base case: factorial of 0 is 1
++  } else {
++    return n * factorial(n - 1); // Recursive case
++  }
++}
+diff -Naur version-0/file_renamed.c version-1/file_renamed.c
+--- version-0/file_renamed.c	1970-01-01 01:00:00.000000000 +0100
++++ version-1/file_renamed.c	2024-02-13 10:16:51.353542309 +0100
+@@ -0,0 +1,2 @@
++int number;
++unsigned long long result;
+diff -Naur version-0/missing_target.c version-1/missing_target.c
+--- version-0/missing_target.c	2024-02-13 10:20:56.533221904 +0100
++++ version-1/missing_target.c	2024-02-13 10:20:54.076559680 +0100
+@@ -2,5 +2,6 @@
+ 
+ int main() {
+   printf("Hello, World!\n");
++  printf("You are great!\n");
+   return 0;
+ }
+diff -Naur version-0/removed_file.c version-1/removed_file.c
+--- version-0/removed_file.c	2024-02-13 10:15:48.540242167 +0100
++++ version-1/removed_file.c	1970-01-01 01:00:00.000000000 +0100
+@@ -1,20 +0,0 @@
+-#include <stdio.h>
+-// Function prototype declaration
+-unsigned long long factorial(int n);
+-int main() {
+-  int number;
+-  unsigned long long result;
+-  // Ask the user for input
+-  printf("Enter a positive integer: ");
+-  scanf("%d", &number);
+-  // Check if the user has entered a negative integer
+-  if (number < 0) {
+-    printf("Factorial of a negative number doesn't exist.\n");
+-  } else {
+-    // Calculate factorial
+-    result = factorial(number);
+-    // Display the result
+-    printf("Factorial of %d is %llu\n", number, result);
+-  }
+-  return 0;
+-}
+diff -Naur version-0/renamed_file.c version-1/renamed_file.c
+--- version-0/renamed_file.c	2024-02-13 10:16:50.446876286 +0100
++++ version-1/renamed_file.c	1970-01-01 01:00:00.000000000 +0100
+@@ -1,2 +0,0 @@
+-int number;
+-unsigned long long result;
