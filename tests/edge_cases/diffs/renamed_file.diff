@@ -1,0 +1,12 @@
+diff -Naur version-0/renamed_file.c version-1/renamed_file.c
+--- version-0/renamed_file.c	2024-02-13 10:16:50.446876286 +0100
++++ version-1/renamed_file.c	1970-01-01 01:00:00.000000000 +0100
+@@ -1,2 +0,0 @@
+-int number;
+-unsigned long long result;
+diff -Naur version-0/file_renamed.c version-1/file_renamed.c
+--- version-0/file_renamed.c	1970-01-01 01:00:00.000000000 +0100
++++ version-1/file_renamed.c	2024-02-13 10:16:51.353542309 +0100
+@@ -0,0 +1,2 @@
++int number;
++unsigned long long result;

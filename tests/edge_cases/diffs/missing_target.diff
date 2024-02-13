@@ -1,0 +1,10 @@
+diff -Naur version-0/missing_target.c version-1/missing_target.c
+--- version-0/missing_target.c	2024-02-13 10:20:56.533221904 +0100
++++ version-1/missing_target.c	2024-02-13 10:20:54.076559680 +0100
+@@ -2,5 +2,6 @@
+ 
+ int main() {
+   printf("Hello, World!\n");
++  printf("You are great!\n");
+   return 0;
+ }
