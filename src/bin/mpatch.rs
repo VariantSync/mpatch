@@ -1,6 +1,11 @@
-use std::{env, error::Error, path::PathBuf, str::FromStr};
-
-// TODO: write rejects to file
+use std::{
+    env,
+    error::Error,
+    fs::File,
+    io::{BufWriter, Write},
+    path::PathBuf,
+    str::FromStr,
+};
 
 use clap::Parser;
 use mpatch::{
@@ -16,6 +21,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     let source_dir = PathBuf::from_str(&cli.source_dir)
         .expect("was not able to parse path to source directory (<SOURCEDIR>)");
     let target_dir = env::current_dir()?;
+
+    let mut rejects_file = cli
+        .rejects_file
+        .map(|rf| BufWriter::new(File::create_new(rf).expect("rejects file already exists!")));
 
     for file_diff in diff {
         let mut source_file_path = source_dir.clone();
@@ -56,8 +65,17 @@ fn main() -> Result<(), Box<dyn Error>> {
             actual_result.write()?;
         }
 
-        if !rejects.is_empty() {
-            eprintln!("{rejects:?}");
+        match &mut rejects_file {
+            Some(rejects_file) => {
+                for reject in rejects {
+                    rejects_file.write_fmt(format_args!("{}", reject))?;
+                }
+            }
+            None => {
+                for reject in rejects {
+                    println!("{}", reject);
+                }
+            }
         }
     }
 

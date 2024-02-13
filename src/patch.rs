@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use crate::{matching::Matching, FileArtifact, FileDiff};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -150,6 +152,15 @@ pub struct Change {
     line: String,
     change_type: ChangeType,
     line_number: usize,
+}
+
+impl Display for Change {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self.change_type {
+            ChangeType::Add => writeln!(f, "+{}", self.line),
+            ChangeType::Remove => writeln!(f, "-{}", self.line),
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
