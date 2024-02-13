@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{fmt::Display, path::PathBuf, str::FromStr, vec::IntoIter};
 
 use crate::{Error, ErrorKind};
 
@@ -29,6 +29,16 @@ impl CommitDiff {
 
     pub fn file_diffs_mut(&mut self) -> &mut [FileDiff] {
         self.file_diffs.as_mut_slice()
+    }
+}
+
+impl IntoIterator for CommitDiff {
+    type Item = FileDiff;
+
+    type IntoIter = IntoIter<FileDiff>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.file_diffs.into_iter()
     }
 }
 
@@ -520,8 +530,12 @@ pub struct SourceFile {
 }
 
 impl SourceFile {
-    pub fn path(&self) -> &str {
+    pub fn path_str(&self) -> &str {
         self.path.as_ref()
+    }
+
+    pub fn path(&self) -> PathBuf {
+        PathBuf::from_str(&self.path).expect("paths must be UTF-8 encoded")
     }
 
     pub fn timestamp(&self) -> &str {
@@ -560,8 +574,12 @@ pub struct TargetFile {
 }
 
 impl TargetFile {
-    pub fn path(&self) -> &str {
+    pub fn path_str(&self) -> &str {
         self.path.as_ref()
+    }
+
+    pub fn path(&self) -> PathBuf {
+        PathBuf::from_str(&self.path).expect("paths must be UTF-8 encoded")
     }
 
     pub fn timestamp(&self) -> &str {

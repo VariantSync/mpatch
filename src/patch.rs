@@ -141,7 +141,7 @@ impl PatchOutcome {
     }
 
     pub fn rejected_changes(&self) -> &[Change] {
-        self.rejected_changes.as_ref()
+        &self.rejected_changes
     }
 }
 

@@ -38,22 +38,22 @@ fn parse_header() {
 fn parse_old_file_name() {
     let file_diffs = load_diffs();
     let diff = file_diffs.first().unwrap();
-    assert_eq!(diff.source_file().path(), "version-A/single.txt");
+    assert_eq!(diff.source_file().path_str(), "version-A/single.txt");
     let diff = file_diffs.get(1).unwrap();
-    assert_eq!(diff.source_file().path(), "version-A/double_end.txt");
+    assert_eq!(diff.source_file().path_str(), "version-A/double_end.txt");
     let diff = file_diffs.get(2).unwrap();
-    assert_eq!(diff.source_file().path(), "version-A/long.txt");
+    assert_eq!(diff.source_file().path_str(), "version-A/long.txt");
 }
 
 #[test]
 fn parse_new_file_name() {
     let file_diffs = load_diffs();
     let diff = file_diffs.first().unwrap();
-    assert_eq!(diff.target_file().path(), "version-B/single.txt");
+    assert_eq!(diff.target_file().path_str(), "version-B/single.txt");
     let diff = file_diffs.get(1).unwrap();
-    assert_eq!(diff.target_file().path(), "version-B/double_end.txt");
+    assert_eq!(diff.target_file().path_str(), "version-B/double_end.txt");
     let diff = file_diffs.get(2).unwrap();
-    assert_eq!(diff.target_file().path(), "version-B/long.txt");
+    assert_eq!(diff.target_file().path_str(), "version-B/long.txt");
 }
 
 #[test]
