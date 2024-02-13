@@ -23,30 +23,31 @@ pub use files::FileArtifact;
 use files::StrippedPath;
 pub use matching::LCSMatcher;
 pub use matching::Matcher;
+use patch::Change;
 use patch::FilePatch;
 
 pub fn apply_all(
-    source_dir: PathBuf,
-    target_dir: PathBuf,
-    patch_file: &str,
-    rejects_file: Option<&str>,
+    source_dir_path: PathBuf,
+    target_dir_path: PathBuf,
+    patch_file_path: &str,
+    rejects_file_path: Option<&str>,
     strip: usize,
     dryrun: bool,
     mut matcher: impl Matcher,
 ) -> Result<(), Error> {
-    let diff = CommitDiff::read(patch_file).unwrap();
+    let diff = CommitDiff::read(patch_file_path).unwrap();
 
-    let mut rejects_file = rejects_file
-        .map(|rf| BufWriter::new(File::create_new(rf).expect("rejects file already exists!")));
+    // We only create a rejects file if there are rejects
+    let mut rejects_file: Option<BufWriter<File>> = None;
 
     for file_diff in diff {
-        let mut source_file_path = source_dir.clone();
+        let mut source_file_path = source_dir_path.clone();
         source_file_path.push(PathBuf::from_stripped(
             &file_diff.source_file().path(),
             strip,
         ));
 
-        let mut target_file_path = target_dir.clone();
+        let mut target_file_path = target_dir_path.clone();
         target_file_path.push(PathBuf::from_stripped(
             &file_diff.target_file().path(),
             strip,
@@ -80,21 +81,36 @@ pub fn apply_all(
             }
         }
 
-        match &mut rejects_file {
-            Some(rejects_file) => {
-                for reject in rejects {
-                    if let Err(e) = rejects_file.write_fmt(format_args!("{}", reject)) {
-                        return Err(Error::new(&e.to_string(), ErrorKind::IOError));
-                    }
-                }
-            }
+        match &rejects_file_path {
+            Some(path) => write_rejects(rejects, &mut rejects_file, path)?,
             None => {
-                for reject in rejects {
-                    println!("{}", reject);
-                }
+                print_rejects(rejects);
             }
         }
     }
 
+    Ok(())
+}
+
+fn print_rejects(rejects: &[Change]) {
+    for reject in rejects {
+        println!("{}", reject);
+    }
+}
+
+fn write_rejects(
+    rejects: &[Change],
+    rejects_file: &mut Option<BufWriter<File>>,
+    path: &str,
+) -> Result<(), Error> {
+    for reject in rejects {
+        // Create the rejects file on demand
+        let file_writer = rejects_file.get_or_insert_with(|| {
+            BufWriter::new(File::create_new(path).expect("rejects file already exists!"))
+        });
+        if let Err(e) = file_writer.write_fmt(format_args!("{}", reject)) {
+            return Err(Error::new(&e.to_string(), ErrorKind::IOError));
+        }
+    }
     Ok(())
 }
