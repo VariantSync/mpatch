@@ -9,11 +9,13 @@ pub mod files;
 pub mod matching;
 pub mod patch;
 
+use std::fs;
 use std::fs::File;
 use std::io::BufWriter;
 use std::io::Write;
 use std::path::Path;
 use std::path::PathBuf;
+use std::process::exit;
 
 pub use diffs::CommitDiff;
 pub use diffs::FileDiff;
@@ -54,18 +56,8 @@ pub fn apply_all(
             strip,
         ));
 
-        let source = FileArtifact::read(
-            source_file_path
-                .to_str()
-                .expect("the source directory is not a valid UTF-8 path"),
-        )
-        .unwrap();
-        let target = FileArtifact::read(
-            target_file_path
-                .to_str()
-                .expect("the target directory is not a valid UTF-8 path"),
-        )
-        .unwrap();
+        let source = read_or_create_empty(source_file_path)?;
+        let target = read_or_create_empty(target_file_path)?;
 
         let matching = matcher.match_files(source, target);
         let patch = FilePatch::from(file_diff);
@@ -91,6 +83,15 @@ pub fn apply_all(
     }
 
     Ok(())
+}
+
+fn read_or_create_empty(pathbuf: PathBuf) -> Result<FileArtifact, Error> {
+    Ok(if Path::exists(&pathbuf) {
+        FileArtifact::read(&pathbuf)?
+    } else {
+        // TODO: All paths should use PathBuf or Path as type
+        FileArtifact::new(pathbuf.to_str().unwrap().to_string())
+    })
 }
 
 fn print_rejects(rejects: &[Change]) {
