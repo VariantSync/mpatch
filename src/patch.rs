@@ -5,6 +5,7 @@ use crate::{matching::Matching, FileArtifact, FileDiff};
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FilePatch {
     changes: Vec<Change>,
+    change_type: FileChangeType,
 }
 
 impl FilePatch {
@@ -13,10 +14,10 @@ impl FilePatch {
         let mut rejected_changes = vec![];
         for mut change in self.changes {
             let target_line_number = match change.change_type {
-                ChangeType::Add => target_matching
+                LineChangeType::Add => target_matching
                     .target_index_fuzzy(change.line_number)
                     .map(|match_id| match_id.unwrap_or(0)),
-                ChangeType::Remove => target_matching
+                LineChangeType::Remove => target_matching
                     .target_index(change.line_number)
                     .expect("the source line was never matched"),
             };
@@ -31,6 +32,7 @@ impl FilePatch {
             changes,
             rejected_changes,
             target: target_matching.into_target(),
+            change_type: self.change_type,
         }
     }
 
@@ -50,16 +52,26 @@ impl FilePatch {
 impl From<FileDiff> for FilePatch {
     fn from(file_diff: FileDiff) -> Self {
         let mut changes = vec![];
+
+        let first_hunk = file_diff.hunks().first().expect("no hunk in diff");
+        let file_change_type = if first_hunk.source_location().hunk_start() == 0 {
+            FileChangeType::Create
+        } else if first_hunk.target_location().hunk_start() == 0 {
+            FileChangeType::Remove
+        } else {
+            FileChangeType::Modify
+        };
+
         for line in file_diff.into_changes() {
             let line_number;
             let change_type;
             match line.line_type() {
                 crate::diffs::LineType::Add => {
-                    change_type = ChangeType::Add;
+                    change_type = LineChangeType::Add;
                     line_number = line.source_line().change_location();
                 }
                 crate::diffs::LineType::Remove => {
-                    change_type = ChangeType::Remove;
+                    change_type = LineChangeType::Remove;
                     line_number = line.source_line().real_location();
                 }
                 _ => panic!("a change must always be an Add or Remove"),
@@ -72,7 +84,10 @@ impl From<FileDiff> for FilePatch {
             });
         }
 
-        FilePatch { changes }
+        FilePatch {
+            changes,
+            change_type: file_change_type,
+        }
     }
 }
 
@@ -81,6 +96,7 @@ pub struct AlignedPatch {
     changes: Vec<Change>,
     rejected_changes: Vec<Change>,
     target: FileArtifact,
+    change_type: FileChangeType,
 }
 
 impl AlignedPatch {
@@ -93,6 +109,13 @@ impl AlignedPatch {
     }
 
     pub fn apply(self) -> PatchOutcome {
+        // TODO: handle different change types
+        match self.change_type {
+            FileChangeType::Create => todo!(),
+            FileChangeType::Remove => todo!(),
+            FileChangeType::Modify => todo!(),
+        }
+
         let ((path, lines), mut changes) = (
             (self.target.into_path_and_lines()),
             self.changes.into_iter().peekable(),
@@ -107,12 +130,12 @@ impl AlignedPatch {
             } {
                 let change = changes.next().expect("there should be a change to extract");
                 match change.change_type {
-                    ChangeType::Add => {
+                    LineChangeType::Add => {
                         // add this line to the vector of patched lines
                         patched_lines.push(change.line);
                         line_number += 1;
                     }
-                    ChangeType::Remove => {
+                    LineChangeType::Remove => {
                         // remove this line by skipping it
                         assert_eq!(line, change.line);
                         continue 'lines_loop;
@@ -150,30 +173,37 @@ impl PatchOutcome {
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Change {
     line: String,
-    change_type: ChangeType,
+    change_type: LineChangeType,
     line_number: usize,
 }
 
 impl Display for Change {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.change_type {
-            ChangeType::Add => writeln!(f, "+{}", self.line),
-            ChangeType::Remove => writeln!(f, "-{}", self.line),
+            LineChangeType::Add => writeln!(f, "+{}", self.line),
+            LineChangeType::Remove => writeln!(f, "-{}", self.line),
         }
     }
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub enum ChangeType {
+pub enum LineChangeType {
     Add,
     Remove,
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub enum FileChangeType {
+    Create,
+    Remove,
+    Modify,
 }
 
 #[cfg(test)]
 mod tests {
     use crate::CommitDiff;
 
-    use super::{Change, ChangeType, FilePatch};
+    use super::{Change, FilePatch, LineChangeType};
 
     #[test]
     fn patch_from_diff() {
@@ -183,22 +213,22 @@ mod tests {
         let expected_changes = [
             Change {
                 line: "REMOVED".to_string(),
-                change_type: ChangeType::Remove,
+                change_type: LineChangeType::Remove,
                 line_number: 4,
             },
             Change {
                 line: "ADDED".to_string(),
-                change_type: ChangeType::Add,
+                change_type: LineChangeType::Add,
                 line_number: 4,
             },
             Change {
                 line: "REMOVED".to_string(),
-                change_type: ChangeType::Remove,
+                change_type: LineChangeType::Remove,
                 line_number: 26,
             },
             Change {
                 line: "ADDED".to_string(),
-                change_type: ChangeType::Add,
+                change_type: LineChangeType::Add,
                 line_number: 26,
             },
         ];
