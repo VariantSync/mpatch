@@ -1,4 +1,4 @@
-use std::env;
+use std::{env, path::PathBuf};
 
 use clap::Parser;
 use mpatch::LCSMatcher;
@@ -11,8 +11,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     mpatch::apply_all(
         cli.source_dir.into(),
         env::current_dir()?,
-        &cli.patch_file,
-        cli.rejects_file.as_deref(),
+        PathBuf::from(cli.patch_file),
+        cli.rejects_file.map(PathBuf::from),
         cli.strip,
         cli.dryrun,
         matcher,

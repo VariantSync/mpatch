@@ -16,8 +16,8 @@ impl FileArtifact {
     }
 
     /// Read the content of the file under path and create a new FileArtifact from it.
-    pub fn read(path: &str) -> Result<FileArtifact, std::io::Error> {
-        let file_content = fs::read_to_string(path)?;
+    pub fn read<P: AsRef<Path>>(path: P) -> Result<FileArtifact, std::io::Error> {
+        let file_content = fs::read_to_string(&path)?;
         Ok(FileArtifact::parse_content(path, file_content))
     }
 
@@ -43,13 +43,17 @@ impl FileArtifact {
     }
 
     /// Individual function that can be called in unit tests without requiring a test file
-    fn parse_content(path: &str, file_content: String) -> Self {
+    fn parse_content<P: AsRef<Path>>(path: P, file_content: String) -> Self {
         let mut lines = vec![];
         for line in file_content.lines().map(|l| l.to_string()) {
             lines.push(line);
         }
         FileArtifact {
-            path: path.to_string(),
+            path: path
+                .as_ref()
+                .to_str()
+                .expect("provided file path is not in UTF-8")
+                .to_string(),
             lines,
         }
     }

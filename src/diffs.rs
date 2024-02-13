@@ -1,4 +1,9 @@
-use std::{fmt::Display, path::PathBuf, str::FromStr, vec::IntoIter};
+use std::{
+    fmt::Display,
+    path::{Path, PathBuf},
+    str::FromStr,
+    vec::IntoIter,
+};
 
 use crate::{Error, ErrorKind};
 
@@ -8,7 +13,7 @@ pub struct CommitDiff {
 }
 
 impl CommitDiff {
-    pub fn read(path: &str) -> Result<CommitDiff, Error> {
+    pub fn read<P: AsRef<Path>>(path: P) -> Result<CommitDiff, Error> {
         let content = std::fs::read_to_string(path);
         let content = content.expect("was not able to load diff");
         CommitDiff::try_from(content)

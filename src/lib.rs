@@ -12,6 +12,7 @@ pub mod patch;
 use std::fs::File;
 use std::io::BufWriter;
 use std::io::Write;
+use std::path::Path;
 use std::path::PathBuf;
 
 pub use diffs::CommitDiff;
@@ -29,8 +30,8 @@ use patch::FilePatch;
 pub fn apply_all(
     source_dir_path: PathBuf,
     target_dir_path: PathBuf,
-    patch_file_path: &str,
-    rejects_file_path: Option<&str>,
+    patch_file_path: PathBuf,
+    rejects_file_path: Option<PathBuf>,
     strip: usize,
     dryrun: bool,
     mut matcher: impl Matcher,
@@ -98,15 +99,15 @@ fn print_rejects(rejects: &[Change]) {
     }
 }
 
-fn write_rejects(
+fn write_rejects<P: AsRef<Path>>(
     rejects: &[Change],
     rejects_file: &mut Option<BufWriter<File>>,
-    path: &str,
+    path: P,
 ) -> Result<(), Error> {
     for reject in rejects {
         // Create the rejects file on demand
         let file_writer = rejects_file.get_or_insert_with(|| {
-            BufWriter::new(File::create_new(path).expect("rejects file already exists!"))
+            BufWriter::new(File::create_new(&path).expect("rejects file already exists!"))
         });
         if let Err(e) = file_writer.write_fmt(format_args!("{}", reject)) {
             return Err(Error::new(&e.to_string(), ErrorKind::IOError));
