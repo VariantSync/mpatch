@@ -4,6 +4,8 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use crate::{Error, ErrorKind};
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FileArtifact {
     path: String,
@@ -16,15 +18,33 @@ impl FileArtifact {
     }
 
     /// Read the content of the file under path and create a new FileArtifact from it.
-    pub fn read<P: AsRef<Path>>(path: P) -> Result<FileArtifact, std::io::Error> {
-        let file_content = fs::read_to_string(&path)?;
-        Ok(FileArtifact::parse_content(path, file_content))
+    pub fn read<P: AsRef<Path>>(path: P) -> Result<FileArtifact, Error> {
+        match fs::read_to_string(&path) {
+            Ok(file_content) => Ok(FileArtifact::parse_content(path, file_content)),
+            Err(err) => Err(Error::new(
+                &format!(
+                    "was not able to load file from {} due to {err}",
+                    path.as_ref().to_string_lossy()
+                ),
+                ErrorKind::IOError,
+            )),
+        }
     }
 
     /// Write the content of this FileArtifact to the file under the given path. The file is
     /// created if it does not exist. This method will overwrite existing files.
-    pub fn write_to(&self, path: &str) -> Result<(), std::io::Error> {
-        fs::write(path, self.to_string())
+    pub fn write_to<P: AsRef<Path>>(&self, path: P) -> Result<(), Error> {
+        if let Err(err) = fs::write(&path, self.to_string()) {
+            Err(Error::new(
+                &format!(
+                    "was not able to load file from {} due to {err}",
+                    path.as_ref().to_string_lossy()
+                ),
+                ErrorKind::IOError,
+            ))
+        } else {
+            Ok(())
+        }
     }
 
     /// Write the content of this FileArtifact back to the file from which it was loaded. This is meant
