@@ -19,9 +19,6 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     for file_diff in diff {
         let mut source_file_path = source_dir.clone();
-        // TODO: Use path stripping
-        // TODO: Test CLI
-        // TODO: Fix main
         source_file_path.push(PathBuf::from_stripped(
             &file_diff.source_file().path(),
             cli.strip,
