@@ -9,3 +9,8 @@ edition = "2021"
 clap = {version = "4.5.0", features = ["derive"]}
 clap_derive = "4.5.0"
 similar = "2.4.0"
+
+[[bin]]
+name = "mpatch"
+test = true
+

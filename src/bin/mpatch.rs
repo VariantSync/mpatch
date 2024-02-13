@@ -3,7 +3,9 @@ use std::{env, error::Error, path::PathBuf, str::FromStr};
 // TODO: write rejects to file
 
 use clap::Parser;
-use mpatch::{patch::FilePatch, CommitDiff, FileArtifact, LCSMatcher, Matcher};
+use mpatch::{
+    files::StrippedPath, patch::FilePatch, CommitDiff, FileArtifact, LCSMatcher, Matcher,
+};
 
 fn main() -> Result<(), Box<dyn Error>> {
     let cli = Cli::parse();
@@ -15,15 +17,21 @@ fn main() -> Result<(), Box<dyn Error>> {
         .expect("was not able to parse path to source directory (<SOURCEDIR>)");
     let target_dir = env::current_dir()?;
 
-    for file_diff in diff.file_diffs() {
+    for file_diff in diff {
         let mut source_file_path = source_dir.clone();
         // TODO: Use path stripping
         // TODO: Test CLI
         // TODO: Fix main
-        source_file_path.push(file_diff.source_file().path());
+        source_file_path.push(PathBuf::from_stripped(
+            &file_diff.source_file().path(),
+            cli.strip,
+        ));
 
         let mut target_file_path = target_dir.clone();
-        target_file_path.push(file_diff.target_file().path());
+        target_file_path.push(PathBuf::from_stripped(
+            &file_diff.target_file().path(),
+            cli.strip,
+        ));
 
         let source = FileArtifact::read(
             source_file_path
@@ -39,15 +47,20 @@ fn main() -> Result<(), Box<dyn Error>> {
         .unwrap();
 
         let matching = matcher.match_files(source, target);
-        let patch = FilePatch::from(diff.file_diffs().first().unwrap().clone());
+        let patch = FilePatch::from(file_diff);
         let aligned_patch = patch.align_to_target(matching);
         let actual_result = aligned_patch.apply();
         let (actual_result, rejects) = (
             actual_result.patched_file(),
             actual_result.rejected_changes(),
         );
+
         if !cli.dryrun {
             actual_result.write()?;
+        }
+
+        if !rejects.is_empty() {
+            eprintln!("{rejects:?}");
         }
     }
 
