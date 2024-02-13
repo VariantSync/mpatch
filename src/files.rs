@@ -13,6 +13,13 @@ pub struct FileArtifact {
 }
 
 impl FileArtifact {
+    pub fn new(path: String) -> FileArtifact {
+        FileArtifact {
+            path,
+            lines: vec![],
+        }
+    }
+
     pub fn from_lines(path: String, lines: Vec<String>) -> FileArtifact {
         FileArtifact { path, lines }
     }
