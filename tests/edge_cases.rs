@@ -1,4 +1,9 @@
-use std::{fs, path::PathBuf};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+    str::FromStr,
+    sync::Once,
+};
 
 use mpatch::{Error, FileArtifact, LCSMatcher};
 
@@ -26,16 +31,27 @@ const RENAMED_ACTUAL_RESULT: &str = "tests/edge_cases/target_variant/version-1/f
 const RENAMED_FILE_EXPECTED_RESULT: &str =
     "tests/edge_cases/source_variant/version-1/file_renamed.c";
 
-fn clean_result_dir(file_path: &str) {
-    fs::remove_file(file_path).unwrap();
-    fs::read_dir(RESULT_DIR).unwrap();
+static INIT: Once = Once::new();
+
+fn prepare_result_dir() {
+    INIT.call_once(|| {
+        fs::create_dir_all(RESULT_DIR).unwrap();
+        for file in fs::read_dir(TARGET_DIR).unwrap() {
+            let file = file.unwrap();
+            let mut target_file = PathBuf::from_str(RESULT_DIR).unwrap();
+            target_file.push(file.path().file_name().unwrap());
+            fs::copy(file.path(), target_file).unwrap();
+        }
+    })
 }
 
 #[test]
 fn added_file() -> Result<(), Error> {
+    prepare_result_dir();
+    let _cleaner = FileCleaner(ADDED_FILE_ACTUAL_RESULT);
     mpatch::apply_all(
         as_path(SOURCE_DIR),
-        as_path(TARGET_DIR),
+        as_path(RESULT_DIR),
         as_path(ADDED_FILE_DIFF),
         None,
         1,
@@ -43,15 +59,16 @@ fn added_file() -> Result<(), Error> {
         LCSMatcher,
     )?;
     compare_actual_and_expected(ADDED_FILE_ACTUAL_RESULT, ADDED_FILE_EXPECTED_RESULT)?;
-    clean_result_dir(ADDED_FILE_ACTUAL_RESULT);
     Ok(())
 }
 
 #[test]
 fn removed_file() -> Result<(), Error> {
+    prepare_result_dir();
+    let _cleaner = FileCleaner(REMOVED_ACTUAL_RESULT);
     mpatch::apply_all(
         as_path(SOURCE_DIR),
-        as_path(TARGET_DIR),
+        as_path(RESULT_DIR),
         as_path(REMOVED_FILE_DIFF),
         None,
         1,
@@ -59,15 +76,15 @@ fn removed_file() -> Result<(), Error> {
         LCSMatcher,
     )?;
     compare_actual_and_expected(REMOVED_ACTUAL_RESULT, REMOVED_FILE_EXPECTED_RESULT)?;
-    clean_result_dir(REMOVED_ACTUAL_RESULT);
     Ok(())
 }
 
 #[test]
 fn missing_target() -> Result<(), Error> {
+    prepare_result_dir();
     mpatch::apply_all(
         as_path(SOURCE_DIR),
-        as_path(TARGET_DIR),
+        as_path(RESULT_DIR),
         as_path(MISSING_TARGET_DIFF),
         None,
         1,
@@ -75,15 +92,16 @@ fn missing_target() -> Result<(), Error> {
         LCSMatcher,
     )?;
     compare_actual_and_expected(MISSING_TARGET_ACTUAL_RESULT, MISSING_TARGET_EXPECTED_RESULT)?;
-    clean_result_dir(MISSING_TARGET_ACTUAL_RESULT);
     Ok(())
 }
 
 #[test]
 fn renamed_file() -> Result<(), Error> {
+    prepare_result_dir();
+    let _cleaner = FileCleaner(RENAMED_ACTUAL_RESULT);
     mpatch::apply_all(
         as_path(SOURCE_DIR),
-        as_path(TARGET_DIR),
+        as_path(RESULT_DIR),
         as_path(RENAMED_FILE_DIFF),
         None,
         1,
@@ -91,7 +109,6 @@ fn renamed_file() -> Result<(), Error> {
         LCSMatcher,
     )?;
     compare_actual_and_expected(RENAMED_ACTUAL_RESULT, RENAMED_FILE_EXPECTED_RESULT)?;
-    clean_result_dir(RENAMED_ACTUAL_RESULT);
     Ok(())
 }
 
@@ -119,4 +136,14 @@ fn compare_actual_and_expected(path_actual: &str, path_expected: &str) -> Result
 
 fn as_path(p: &str) -> PathBuf {
     PathBuf::from(p)
+}
+
+struct FileCleaner<'a>(&'a str);
+
+impl<'a> Drop for FileCleaner<'a> {
+    fn drop(&mut self) {
+        if Path::exists(&PathBuf::from(self.0)) {
+            fs::remove_file(self.0).unwrap()
+        }
+    }
 }
