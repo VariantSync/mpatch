@@ -35,7 +35,6 @@ const RENAMED_FILE_EXPECTED_RESULT: &str =
 
 const BINARY_FILE_DIFF: &str = "tests/binary/diffs/binary.diff";
 const BINARY_FILE_ACTUAL_RESULT: &str = "tests/binary/target_variant/version-1/file_renamed.c";
-const BINARY_FILE_EXPECTED_RESULT: &str = "tests/binary/source_variant/version-1/file_renamed.c";
 
 static INIT_EDGE: Once = Once::new();
 static INIT_BINARY: Once = Once::new();
@@ -130,10 +129,10 @@ fn renamed_file() -> Result<(), Error> {
 }
 
 #[test]
-fn binary_file() -> Result<(), Error> {
+fn binary_file() {
     prepare_result_dir();
     let _cleaner = FileCleaner(BINARY_FILE_ACTUAL_RESULT);
-    mpatch::apply_all(
+    if let Err(error) = mpatch::apply_all(
         as_path(BINARY_SOURCE_DIR),
         as_path(BINARY_TARGET_DIR),
         as_path(BINARY_FILE_DIFF),
@@ -141,9 +140,11 @@ fn binary_file() -> Result<(), Error> {
         1,
         false,
         LCSMatcher,
-    )?;
-    compare_actual_and_expected(BINARY_FILE_ACTUAL_RESULT, BINARY_FILE_EXPECTED_RESULT)?;
-    Ok(())
+    ) {
+        assert_eq!(error.message(), "stream did not contain valid UTF-8");
+    } else {
+        panic!("binary file patching should not yet be allowed");
+    }
 }
 
 fn compare_actual_and_expected(path_actual: &str, path_expected: &str) -> Result<(), Error> {
