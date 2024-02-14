@@ -2,6 +2,7 @@
 // TODO: Recognize file deletion
 // TODO: Feature traces and target configuration are part of the input!
 // TODO: Handle git diffs as well; they have differences e.g., /dev/null, permission change
+// TODO: Test patching of binary files
 
 pub mod diffs;
 pub mod error;
@@ -9,13 +10,11 @@ pub mod files;
 pub mod matching;
 pub mod patch;
 
-use std::fs;
 use std::fs::File;
 use std::io::BufWriter;
 use std::io::Write;
 use std::path::Path;
 use std::path::PathBuf;
-use std::process::exit;
 
 pub use diffs::CommitDiff;
 pub use diffs::FileDiff;
@@ -62,15 +61,20 @@ pub fn apply_all(
         let matching = matcher.match_files(source, target);
         let patch = FilePatch::from(file_diff);
         let aligned_patch = patch.align_to_target(matching);
-        let actual_result = aligned_patch.apply();
-        let (actual_result, rejects) = (
-            actual_result.patched_file(),
-            actual_result.rejected_changes(),
+
+        let patch_outcome = aligned_patch.apply(dryrun)?;
+        let (actual_result, rejects, change_type) = (
+            patch_outcome.patched_file(),
+            patch_outcome.rejected_changes(),
+            patch_outcome.change_type(),
         );
 
-        if !dryrun {
-            if let Err(e) = actual_result.write() {
-                return Err(Error::new(&e.to_string(), ErrorKind::IOError));
+        if dryrun {
+            // print the result of a dryrun
+            println!("--------------------------------------------------------");
+            println!("{change_type} {}", actual_result.path().to_string_lossy());
+            for line in actual_result.lines() {
+                println!("{line}");
             }
         }
 
@@ -89,8 +93,7 @@ fn read_or_create_empty(pathbuf: PathBuf) -> Result<FileArtifact, Error> {
     Ok(if Path::exists(&pathbuf) {
         FileArtifact::read(&pathbuf)?
     } else {
-        // TODO: All paths should use PathBuf or Path as type
-        FileArtifact::new(pathbuf.to_str().unwrap().to_string())
+        FileArtifact::new(pathbuf)
     })
 }
 
