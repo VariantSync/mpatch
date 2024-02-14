@@ -11,6 +11,10 @@ const RESULT_DIR: &str = "tests/edge_cases/target_variant/version-1";
 const SOURCE_DIR: &str = "tests/edge_cases/source_variant/version-0";
 const TARGET_DIR: &str = "tests/edge_cases/target_variant/version-0";
 
+const BINARY_RESULT_DIR: &str = "tests/binary/target_variant/version-1";
+const BINARY_SOURCE_DIR: &str = "tests/binary/source_variant/version-0";
+const BINARY_TARGET_DIR: &str = "tests/binary/target_variant/version-1";
+
 const ADDED_FILE_DIFF: &str = "tests/edge_cases/diffs/added_file.diff";
 const ADDED_FILE_ACTUAL_RESULT: &str = "tests/edge_cases/target_variant/version-1/added_file.c";
 const ADDED_FILE_EXPECTED_RESULT: &str = "tests/edge_cases/source_variant/version-1/added_file.c";
@@ -29,10 +33,15 @@ const RENAMED_ACTUAL_RESULT: &str = "tests/edge_cases/target_variant/version-1/f
 const RENAMED_FILE_EXPECTED_RESULT: &str =
     "tests/edge_cases/source_variant/version-1/file_renamed.c";
 
-static INIT: Once = Once::new();
+const BINARY_FILE_DIFF: &str = "tests/binary/diffs/binary.diff";
+const BINARY_FILE_ACTUAL_RESULT: &str = "tests/binary/target_variant/version-1/file_renamed.c";
+const BINARY_FILE_EXPECTED_RESULT: &str = "tests/binary/source_variant/version-1/file_renamed.c";
+
+static INIT_EDGE: Once = Once::new();
+static INIT_BINARY: Once = Once::new();
 
 fn prepare_result_dir() {
-    INIT.call_once(|| {
+    INIT_EDGE.call_once(|| {
         fs::create_dir_all(RESULT_DIR).unwrap();
         for file in fs::read_dir(TARGET_DIR).unwrap() {
             let file = file.unwrap();
@@ -40,7 +49,16 @@ fn prepare_result_dir() {
             target_file.push(file.path().file_name().unwrap());
             fs::copy(file.path(), target_file).unwrap();
         }
-    })
+    });
+    INIT_BINARY.call_once(|| {
+        fs::create_dir_all(BINARY_RESULT_DIR).unwrap();
+        for file in fs::read_dir(BINARY_TARGET_DIR).unwrap() {
+            let file = file.unwrap();
+            let mut target_file = PathBuf::from_str(BINARY_RESULT_DIR).unwrap();
+            target_file.push(file.path().file_name().unwrap());
+            fs::copy(file.path(), target_file).unwrap();
+        }
+    });
 }
 
 #[test]
@@ -108,6 +126,23 @@ fn renamed_file() -> Result<(), Error> {
         LCSMatcher,
     )?;
     compare_actual_and_expected(RENAMED_ACTUAL_RESULT, RENAMED_FILE_EXPECTED_RESULT)?;
+    Ok(())
+}
+
+#[test]
+fn binary_file() -> Result<(), Error> {
+    prepare_result_dir();
+    let _cleaner = FileCleaner(BINARY_FILE_ACTUAL_RESULT);
+    mpatch::apply_all(
+        as_path(BINARY_SOURCE_DIR),
+        as_path(BINARY_TARGET_DIR),
+        as_path(BINARY_FILE_DIFF),
+        None,
+        1,
+        false,
+        LCSMatcher,
+    )?;
+    compare_actual_and_expected(BINARY_FILE_ACTUAL_RESULT, BINARY_FILE_EXPECTED_RESULT)?;
     Ok(())
 }
 
