@@ -23,10 +23,20 @@ impl Display for Error {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+impl From<std::io::Error> for Error {
+    fn from(value: std::io::Error) -> Self {
+        Error {
+            message: value.to_string(),
+            kind: ErrorKind::IOError,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ErrorKind {
     DiffParseError,
     IOError,
+    PatchError,
 }
 
 impl Display for ErrorKind {
@@ -34,6 +44,7 @@ impl Display for ErrorKind {
         match self {
             ErrorKind::DiffParseError => write!(f, "DiffParseError"),
             ErrorKind::IOError => write!(f, "IOError"),
+            ErrorKind::PatchError => write!(f, "PatchError"),
         }
     }
 }

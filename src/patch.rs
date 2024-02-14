@@ -1,6 +1,6 @@
-use std::fmt::Display;
+use std::{fmt::Display, fs, path::Path, vec};
 
-use crate::{matching::Matching, FileArtifact, FileDiff};
+use crate::{matching::Matching, Error, ErrorKind, FileArtifact, FileDiff};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FilePatch {
@@ -10,6 +10,16 @@ pub struct FilePatch {
 
 impl FilePatch {
     pub fn align_to_target(self, target_matching: Matching) -> AlignedPatch {
+        if self.change_type == FileChangeType::Create {
+            // Files that are to be created are aligned by definition
+            return AlignedPatch {
+                changes: self.changes,
+                rejected_changes: vec![],
+                target: target_matching.into_target(),
+                change_type: self.change_type,
+            };
+        }
+
         let mut changes = Vec::with_capacity(self.changes.len());
         let mut rejected_changes = vec![];
         for mut change in self.changes {
@@ -108,14 +118,51 @@ impl AlignedPatch {
         &self.target
     }
 
-    pub fn apply(self) -> PatchOutcome {
-        // TODO: handle different change types
+    pub fn apply(mut self, dryrun: bool) -> Result<PatchOutcome, Error> {
+        // Check files existance
         match self.change_type {
-            FileChangeType::Create => todo!(),
-            FileChangeType::Remove => todo!(),
-            FileChangeType::Modify => todo!(),
+            FileChangeType::Remove | FileChangeType::Modify => {
+                // reject the patch if the target file does not exist
+                if !Path::exists(self.target.path()) {
+                    self.reject_all();
+                    return Err(Error::new(
+                        "patch error (remove|modify): file does not exist in the target directory",
+                        ErrorKind::PatchError,
+                    ));
+                }
+            }
+            FileChangeType::Create => {
+                // reject the patch if the target file exists
+                if Path::exists(self.target.path()) {
+                    self.reject_all();
+                    return Err(Error::new(
+                        "patch error (create): file already exists in the target directory",
+                        ErrorKind::PatchError,
+                    ));
+                }
+            }
         }
+        match self.change_type {
+            FileChangeType::Create => self.apply_file_creation(dryrun),
+            FileChangeType::Remove => self.apply_file_removal(dryrun),
+            FileChangeType::Modify => self.apply_file_modification(dryrun),
+        }
+    }
 
+    fn reject_all(&mut self) {
+        let mut rejects = vec![];
+        while let Some(change) = self.changes.pop() {
+            rejects.push(change);
+        }
+        while let Some(reject) = self.rejected_changes.pop() {
+            rejects.push(reject);
+        }
+        rejects.sort_by(|a, b| a.line_number.cmp(&b.line_number));
+        self.changes = vec![];
+        self.rejected_changes = rejects;
+    }
+
+    fn apply_file_modification(self, dryrun: bool) -> Result<PatchOutcome, Error> {
         let ((path, lines), mut changes) = (
             (self.target.into_path_and_lines()),
             self.changes.into_iter().peekable(),
@@ -148,16 +195,75 @@ impl AlignedPatch {
             line_number += 1;
         }
 
-        PatchOutcome {
-            patched_file: FileArtifact::from_lines(path, patched_lines),
-            rejected_changes: self.rejected_changes,
+        let patched_file = FileArtifact::from_lines(path, patched_lines);
+
+        if !dryrun {
+            patched_file.write()?;
         }
+
+        Ok(PatchOutcome {
+            patched_file,
+            rejected_changes: self.rejected_changes,
+            change_type: self.change_type,
+        })
+    }
+
+    fn apply_file_creation(self, dryrun: bool) -> Result<PatchOutcome, Error> {
+        let (path, lines) = (
+            self.target.path().to_path_buf(),
+            self.changes.into_iter().map(|c| c.line).collect(),
+        );
+
+        if !dryrun {
+            // Create all parent directories
+            if let Some(parent) = path.parent() {
+                fs::create_dir_all(parent)?;
+            }
+        }
+
+        let patched_file = FileArtifact::from_lines(path, lines);
+        if !dryrun {
+            patched_file.write()?;
+        }
+
+        Ok(PatchOutcome {
+            patched_file,
+            rejected_changes: self.rejected_changes,
+            change_type: self.change_type,
+        })
+    }
+
+    fn apply_file_removal(self, dryrun: bool) -> Result<PatchOutcome, Error> {
+        // there are no lines in the removed file
+        let path = self.target.path().to_path_buf();
+
+        if !dryrun {
+            fs::remove_file(&path)?;
+        }
+
+        Ok(PatchOutcome {
+            patched_file: FileArtifact::from_lines(path, vec![]),
+            rejected_changes: self.rejected_changes,
+            change_type: self.change_type,
+        })
+    }
+}
+
+impl Display for AlignedPatch {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{} {}",
+            self.change_type,
+            self.target.path().to_string_lossy()
+        )
     }
 }
 
 pub struct PatchOutcome {
     patched_file: FileArtifact,
     rejected_changes: Vec<Change>,
+    change_type: FileChangeType,
 }
 
 impl PatchOutcome {
@@ -167,6 +273,10 @@ impl PatchOutcome {
 
     pub fn rejected_changes(&self) -> &[Change] {
         &self.rejected_changes
+    }
+
+    pub fn change_type(&self) -> FileChangeType {
+        self.change_type
     }
 }
 
@@ -197,6 +307,16 @@ pub enum FileChangeType {
     Create,
     Remove,
     Modify,
+}
+
+impl Display for FileChangeType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            FileChangeType::Create => write!(f, "Create"),
+            FileChangeType::Remove => write!(f, "Create"),
+            FileChangeType::Modify => write!(f, "Create"),
+        }
+    }
 }
 
 #[cfg(test)]
