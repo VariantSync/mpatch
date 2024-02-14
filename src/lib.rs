@@ -37,7 +37,7 @@ pub fn apply_all(
     dryrun: bool,
     mut matcher: impl Matcher,
 ) -> Result<(), Error> {
-    let diff = CommitDiff::read(patch_file_path).unwrap();
+    let diff = CommitDiff::read(patch_file_path)?;
 
     // We only create a rejects file if there are rejects
     let mut rejects_file: Option<BufWriter<File>> = None;

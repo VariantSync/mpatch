@@ -13,6 +13,14 @@ impl Error {
             kind,
         }
     }
+
+    pub fn message(&self) -> &str {
+        &self.message
+    }
+
+    pub fn kind(&self) -> &ErrorKind {
+        &self.kind
+    }
 }
 
 impl std::error::Error for Error {}
