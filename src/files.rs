@@ -8,19 +8,19 @@ use crate::{Error, ErrorKind};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FileArtifact {
-    path: String,
+    path: PathBuf,
     lines: Vec<String>,
 }
 
 impl FileArtifact {
-    pub fn new(path: String) -> FileArtifact {
+    pub fn new(path: PathBuf) -> FileArtifact {
         FileArtifact {
             path,
             lines: vec![],
         }
     }
 
-    pub fn from_lines(path: String, lines: Vec<String>) -> FileArtifact {
+    pub fn from_lines(path: PathBuf, lines: Vec<String>) -> FileArtifact {
         FileArtifact { path, lines }
     }
 
@@ -76,11 +76,7 @@ impl FileArtifact {
             lines.push(line);
         }
         FileArtifact {
-            path: path
-                .as_ref()
-                .to_str()
-                .expect("provided file path is not in UTF-8")
-                .to_string(),
+            path: path.as_ref().to_path_buf(),
             lines,
         }
     }
@@ -93,11 +89,11 @@ impl FileArtifact {
         self.lines
     }
 
-    pub fn into_path_and_lines(self) -> (String, Vec<String>) {
+    pub fn into_path_and_lines(self) -> (PathBuf, Vec<String>) {
         (self.path, self.lines)
     }
 
-    pub fn path(&self) -> &str {
+    pub fn path(&self) -> &Path {
         &self.path
     }
 }
