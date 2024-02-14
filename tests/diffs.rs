@@ -1,5 +1,3 @@
-mod common;
-
 use std::fs;
 
 use mpatch::{
