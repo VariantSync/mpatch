@@ -18,8 +18,6 @@ const ADDED_FILE_EXPECTED_RESULT: &str = "tests/edge_cases/source_variant/versio
 const MISSING_TARGET_DIFF: &str = "tests/edge_cases/diffs/missing_target.diff";
 const MISSING_TARGET_ACTUAL_RESULT: &str =
     "tests/edge_cases/target_variant/version-1/missing_target.c";
-const MISSING_TARGET_EXPECTED_RESULT: &str =
-    "tests/edge_cases/source_variant/version-1/missing_target.c";
 
 const REMOVED_FILE_DIFF: &str = "tests/edge_cases/diffs/removed_file.diff";
 const REMOVED_ACTUAL_RESULT: &str = "tests/edge_cases/target_variant/version-1/removed_file.c";
@@ -82,6 +80,7 @@ fn removed_file() -> Result<(), Error> {
 #[test]
 fn missing_target() -> Result<(), Error> {
     prepare_result_dir();
+    let _cleaner = FileCleaner(MISSING_TARGET_ACTUAL_RESULT);
     mpatch::apply_all(
         as_path(SOURCE_DIR),
         as_path(RESULT_DIR),
@@ -91,7 +90,7 @@ fn missing_target() -> Result<(), Error> {
         false,
         LCSMatcher,
     )?;
-    compare_actual_and_expected(MISSING_TARGET_ACTUAL_RESULT, MISSING_TARGET_EXPECTED_RESULT)?;
+    assert!(!Path::exists(&PathBuf::from(MISSING_TARGET_ACTUAL_RESULT)));
     Ok(())
 }
 
