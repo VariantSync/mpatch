@@ -1,6 +1,6 @@
 use std::{fmt::Display, fs, path::Path, vec};
 
-use crate::{matching::Matching, Error, ErrorKind, FileArtifact, FileDiff};
+use crate::{matching::Matching, Error, FileArtifact, FileDiff};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FilePatch {
@@ -119,28 +119,20 @@ impl AlignedPatch {
     }
 
     pub fn apply(mut self, dryrun: bool) -> Result<PatchOutcome, Error> {
-        // Check files existance
-        match self.change_type {
-            FileChangeType::Remove | FileChangeType::Modify => {
-                // reject the patch if the target file does not exist
-                if !Path::exists(self.target.path()) {
-                    self.reject_all();
-                    return Err(Error::new(
-                        "patch error (remove|modify): file does not exist in the target directory",
-                        ErrorKind::PatchError,
-                    ));
-                }
-            }
-            FileChangeType::Create => {
-                // reject the patch if the target file exists
-                if Path::exists(self.target.path()) {
-                    self.reject_all();
-                    return Err(Error::new(
-                        "patch error (create): file already exists in the target directory",
-                        ErrorKind::PatchError,
-                    ));
-                }
-            }
+        // Check file existance; it must not exist when it is to be created and it must exist
+        // when it is to be modified or removed
+        let reject_patch = if self.change_type == FileChangeType::Create {
+            Path::exists(self.target.path())
+        } else {
+            !Path::exists(self.target.path())
+        };
+        if reject_patch {
+            self.reject_all();
+            return Ok(PatchOutcome {
+                patched_file: self.target,
+                rejected_changes: self.rejected_changes,
+                change_type: self.change_type,
+            });
         }
         match self.change_type {
             FileChangeType::Create => self.apply_file_creation(dryrun),
