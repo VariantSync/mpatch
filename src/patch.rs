@@ -305,8 +305,8 @@ impl Display for FileChangeType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             FileChangeType::Create => write!(f, "Create"),
-            FileChangeType::Remove => write!(f, "Create"),
-            FileChangeType::Modify => write!(f, "Create"),
+            FileChangeType::Remove => write!(f, "Remove"),
+            FileChangeType::Modify => write!(f, "Modify"),
         }
     }
 }
