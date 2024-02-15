@@ -29,7 +29,9 @@ impl FilePatch {
                     .map(|match_id| match_id.unwrap_or(0)),
                 LineChangeType::Remove => target_matching
                     .target_index(change.line_number)
-                    .expect("the source line was never matched"),
+                    .unwrap_or_else(|| {
+                        panic!("the source line {} was never matched", change.line_number)
+                    }),
             };
             if let Some(target_line_number) = target_line_number {
                 change.line_number = target_line_number;
@@ -161,10 +163,15 @@ impl AlignedPatch {
         );
 
         let mut line_number = 1;
+        let mut applied_add = 0;
+        let mut applied_remove = 0;
         let mut patched_lines = vec![];
         'lines_loop: for line in lines {
             while match changes.peek() {
-                Some(change) => change.line_number == line_number,
+                Some(change) if change.change_type == LineChangeType::Add => {
+                    change.line_number <= line_number
+                }
+                Some(change) => (change.line_number + applied_add - applied_remove) == line_number,
                 None => false,
             } {
                 let change = changes.next().expect("there should be a change to extract");
@@ -172,19 +179,32 @@ impl AlignedPatch {
                     LineChangeType::Add => {
                         // add this line to the vector of patched lines
                         patched_lines.push(change.line);
+                        applied_add += 1;
                         line_number += 1;
                     }
                     LineChangeType::Remove => {
                         // remove this line by skipping it
-                        assert_eq!(line, change.line);
+                        assert_eq!(
+                            line, change.line,
+                            "unexpected line difference in line {line_number}"
+                        );
+                        applied_remove += 1;
                         continue 'lines_loop;
                     }
                 }
             }
+
             // once all changes for this line_number have been applied, we can add the next
             // unchanged line
             patched_lines.push(line);
             line_number += 1;
+        }
+
+        if changes.peek().is_some() {
+            for change in changes {
+                eprint!("{change}");
+            }
+            panic!("there were unprocessed changes in the patch");
         }
 
         let patched_file = FileArtifact::from_lines(path, patched_lines);
@@ -277,6 +297,20 @@ pub struct Change {
     line: String,
     change_type: LineChangeType,
     line_number: usize,
+}
+
+impl Change {
+    pub fn line(&self) -> &str {
+        &self.line
+    }
+
+    pub fn change_type(&self) -> LineChangeType {
+        self.change_type
+    }
+
+    pub fn line_number(&self) -> usize {
+        self.line_number
+    }
 }
 
 impl Display for Change {

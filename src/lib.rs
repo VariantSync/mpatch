@@ -43,6 +43,7 @@ pub fn apply_all(
     let mut rejects_file: Option<BufWriter<File>> = None;
 
     for file_diff in diff {
+        let diff_header = file_diff.header();
         let mut source_file_path = source_dir_path.clone();
         source_file_path.push(PathBuf::from_stripped(
             &file_diff.source_file().path(),
@@ -69,17 +70,15 @@ pub fn apply_all(
             patch_outcome.change_type(),
         );
 
-        if dryrun {
-            // print the result of a dryrun
-            println!("--------------------------------------------------------");
-            println!("{change_type} {}", actual_result.path().to_string_lossy());
-        }
+        // print the result of a dryrun
+        println!("--------------------------------------------------------");
+        println!("{change_type} {}", actual_result.path().to_string_lossy());
 
         if !rejects.is_empty() {
             match &rejects_file_path {
-                Some(path) => write_rejects(rejects, &mut rejects_file, path)?,
+                Some(path) => write_rejects(diff_header, rejects, &mut rejects_file, path)?,
                 None => {
-                    print_rejects(rejects);
+                    print_rejects(diff_header, rejects);
                 }
             }
         }
@@ -96,26 +95,32 @@ fn read_or_create_empty(pathbuf: PathBuf) -> Result<FileArtifact, Error> {
     })
 }
 
-fn print_rejects(rejects: &[Change]) {
-    println!("Rejected changes:");
+fn print_rejects(diff_header: String, rejects: &[Change]) {
+    println!("{diff_header}");
     for reject in rejects {
+        println!("@@ -{} +{} @@", reject.line_number(), reject.line_number());
         print!("{}", reject);
     }
 }
 
 fn write_rejects<P: AsRef<Path>>(
+    diff_header: String,
     rejects: &[Change],
     rejects_file: &mut Option<BufWriter<File>>,
     path: P,
 ) -> Result<(), Error> {
+    // Create the rejects file on demand
+    let file_writer = rejects_file.get_or_insert_with(|| {
+        BufWriter::new(File::create_new(&path).expect("rejects file already exists!"))
+    });
+    file_writer.write_fmt(format_args!("{}\n", diff_header))?;
     for reject in rejects {
-        // Create the rejects file on demand
-        let file_writer = rejects_file.get_or_insert_with(|| {
-            BufWriter::new(File::create_new(&path).expect("rejects file already exists!"))
-        });
-        if let Err(e) = file_writer.write_fmt(format_args!("{}", reject)) {
-            return Err(Error::new(&e.to_string(), ErrorKind::IOError));
-        }
+        file_writer.write_fmt(format_args!(
+            "@@ -{} +{} @@\n",
+            reject.line_number(),
+            reject.line_number()
+        ))?;
+        file_writer.write_fmt(format_args!("{}", reject))?
     }
     Ok(())
 }

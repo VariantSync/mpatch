@@ -166,6 +166,17 @@ impl FileDiff {
             .collect();
         IntoChangedLines { changes }
     }
+
+    pub fn header(&self) -> String {
+        format!(
+            "{}\n--- {}\t{}\n+++ {}\t{}",
+            self.diff_command,
+            self.source_file.path,
+            self.source_file.timestamp,
+            self.target_file.path,
+            self.target_file.timestamp
+        )
+    }
 }
 
 pub struct ChangedLines<'a> {
