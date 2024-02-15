@@ -73,15 +73,14 @@ pub fn apply_all(
             // print the result of a dryrun
             println!("--------------------------------------------------------");
             println!("{change_type} {}", actual_result.path().to_string_lossy());
-            for line in actual_result.lines() {
-                println!("{line}");
-            }
         }
 
-        match &rejects_file_path {
-            Some(path) => write_rejects(rejects, &mut rejects_file, path)?,
-            None => {
-                print_rejects(rejects);
+        if !rejects.is_empty() {
+            match &rejects_file_path {
+                Some(path) => write_rejects(rejects, &mut rejects_file, path)?,
+                None => {
+                    print_rejects(rejects);
+                }
             }
         }
     }
@@ -98,8 +97,9 @@ fn read_or_create_empty(pathbuf: PathBuf) -> Result<FileArtifact, Error> {
 }
 
 fn print_rejects(rejects: &[Change]) {
+    println!("Rejected changes:");
     for reject in rejects {
-        println!("{}", reject);
+        print!("{}", reject);
     }
 }
 
