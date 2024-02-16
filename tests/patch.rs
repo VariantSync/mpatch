@@ -165,11 +165,15 @@ pub fn run_application_test(
 
     assert_eq!(expected_result.lines().len(), actual_result.lines().len());
     assert_eq!(rejects.len(), expected_rejects_count);
-    println!("Found rejects:");
-    for reject in rejects {
-        println!("{}: {reject}", reject.change_id());
+
+    if !rejects.is_empty() {
+        println!("Found rejects:");
+        for reject in rejects {
+            println!("{}: {reject}", reject.change_id());
+        }
+        println!();
     }
-    println!();
+
     for (expected, actual) in expected_result
         .lines()
         .iter()
@@ -181,6 +185,13 @@ pub fn run_application_test(
 }
 
 pub fn read_patch(path: &str) -> FilePatch {
-    let diff = CommitDiff::read(path).unwrap();
-    FilePatch::from(diff.file_diffs().first().unwrap().clone())
+    let diff = CommitDiff::read(path)
+        .unwrap()
+        .file_diffs()
+        .first()
+        .unwrap()
+        .clone();
+    println!("read patch:");
+    println!("{}", diff.header());
+    FilePatch::from(diff)
 }
