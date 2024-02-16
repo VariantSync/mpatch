@@ -8,7 +8,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let matcher = LCSMatcher;
 
-    mpatch::apply_all(
+    if let Err(error) = mpatch::apply_all(
         cli.source_dir.into(),
         env::current_dir()?,
         PathBuf::from(cli.patch_file),
@@ -16,7 +16,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         cli.strip,
         cli.dryrun,
         matcher,
-    )?;
+    ) {
+        eprintln!("{}", error);
+        return Err(Box::new(error));
+    }
+
     Ok(())
 }
 
