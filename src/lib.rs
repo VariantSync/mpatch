@@ -98,8 +98,7 @@ fn read_or_create_empty(pathbuf: PathBuf) -> Result<FileArtifact, Error> {
 fn print_rejects(diff_header: String, rejects: &[Change]) {
     println!("{diff_header}");
     for reject in rejects {
-        println!("@@ -{} +{} @@", reject.line_number(), reject.line_number());
-        print!("{}", reject);
+        print!("{}: {}", reject.change_id(), reject);
     }
 }
 
@@ -115,12 +114,7 @@ fn write_rejects<P: AsRef<Path>>(
     });
     file_writer.write_fmt(format_args!("{}\n", diff_header))?;
     for reject in rejects {
-        file_writer.write_fmt(format_args!(
-            "@@ -{} +{} @@\n",
-            reject.line_number(),
-            reject.line_number()
-        ))?;
-        file_writer.write_fmt(format_args!("{}", reject))?
+        file_writer.write_fmt(format_args!("{}: {}", reject.change_id(), reject))?
     }
     Ok(())
 }

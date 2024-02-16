@@ -165,6 +165,11 @@ pub fn run_application_test(
 
     assert_eq!(expected_result.lines().len(), actual_result.lines().len());
     assert_eq!(rejects.len(), expected_rejects_count);
+    println!("Found rejects:");
+    for reject in rejects {
+        println!("{}: {reject}", reject.change_id());
+    }
+    println!();
     for (expected, actual) in expected_result
         .lines()
         .iter()

@@ -74,7 +74,7 @@ impl From<FileDiff> for FilePatch {
             FileChangeType::Modify
         };
 
-        for line in file_diff.into_changes() {
+        for (change_id, line) in file_diff.into_changes().enumerate() {
             let line_number;
             let change_type;
             match line.line_type() {
@@ -93,6 +93,7 @@ impl From<FileDiff> for FilePatch {
                 line: line.into_text(),
                 change_type,
                 line_number,
+                change_id,
             });
         }
 
@@ -297,6 +298,7 @@ pub struct Change {
     line: String,
     change_type: LineChangeType,
     line_number: usize,
+    change_id: usize,
 }
 
 impl Change {
@@ -310,6 +312,10 @@ impl Change {
 
     pub fn line_number(&self) -> usize {
         self.line_number
+    }
+
+    pub fn change_id(&self) -> usize {
+        self.change_id
     }
 }
 
@@ -361,21 +367,25 @@ mod tests {
                 line: "REMOVED".to_string(),
                 change_type: LineChangeType::Remove,
                 line_number: 4,
+                change_id: 0,
             },
             Change {
                 line: "ADDED".to_string(),
                 change_type: LineChangeType::Add,
                 line_number: 4,
+                change_id: 1,
             },
             Change {
                 line: "REMOVED".to_string(),
                 change_type: LineChangeType::Remove,
                 line_number: 26,
+                change_id: 2,
             },
             Change {
                 line: "ADDED".to_string(),
                 change_type: LineChangeType::Add,
                 line_number: 26,
+                change_id: 3,
             },
         ];
 
