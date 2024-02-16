@@ -167,16 +167,15 @@ impl AlignedPatch {
         // The line number is used to identify the edit locations that were previously determined
         // during the alignment.
         // We start at 0 to account for line insertions before the first line
-        let mut target_line_number = 0;
+        let mut target_line_number = 1;
         let mut patched_lines = vec![];
         'lines_loop: for line in lines {
             while changes.peek().map_or(false, |c| match c.change_type {
-                // Adds are anchored to the context line above (i.e., the line at
-                // target_line_number)
-                LineChangeType::Add => c.line_number == target_line_number,
+                // Adds are anchored to the context line above (i.e., lower than target_line_number)
+                LineChangeType::Add => c.line_number < target_line_number,
                 // Removes are anchored to actual line being removed (i.e. the line being currently
-                // processed which has line number 'target_line_number + 1'
-                LineChangeType::Remove => c.line_number == target_line_number + 1,
+                // processed which has line number 'target_line_number'
+                LineChangeType::Remove => c.line_number == target_line_number,
             }) {
                 let change = changes.next().expect("there should be a change to extract");
                 match change.change_type {
@@ -196,16 +195,39 @@ impl AlignedPatch {
                 }
             }
 
+            changes.peek().map(|c| {
+                if c.change_type() == LineChangeType::Remove
+                    && c.line_number() <= target_line_number
+                {
+                    eprintln!("Missed removal of {}: {}", c.line_number, c.line);
+                    eprintln!("last line: {:?}", patched_lines.pop());
+                    eprintln!("current line: {line}");
+                    eprintln!("line number: {target_line_number}");
+                    panic!();
+                }
+            });
+
             // once all changes for this line_number have been applied, we can add the next
             // unchanged line
             patched_lines.push(line);
             target_line_number += 1;
         }
 
-        if changes.peek().is_some() {
-            for change in changes {
-                eprint!("{}: {change}", change.line_number);
+        // Apply the remaining changes
+        let mut should_panic = false;
+        while let Some(change) = changes.next() {
+            match change.change_type {
+                LineChangeType::Add => {
+                    // add this line to the vector of patched lines
+                    patched_lines.push(change.line);
+                }
+                LineChangeType::Remove => {
+                    eprint!("{}: {change}", change.line_number);
+                    should_panic = true;
+                }
             }
+        }
+        if should_panic {
             panic!("there were unprocessed changes in the patch");
         }
 
