@@ -163,33 +163,34 @@ impl AlignedPatch {
             self.changes.into_iter().peekable(),
         );
 
-        let mut line_number = 1;
-        let mut applied_add = 0;
-        let mut applied_remove = 0;
+        // The number of the currently processed line in the target file (before modification)
+        // The line number is used to identify the edit locations that were previously determined
+        // during the alignment.
+        // We start at 0 to account for line insertions before the first line
+        let mut target_line_number = 0;
         let mut patched_lines = vec![];
         'lines_loop: for line in lines {
-            while match changes.peek() {
-                Some(change) if change.change_type == LineChangeType::Add => {
-                    change.line_number <= line_number
-                }
-                Some(change) => (change.line_number + applied_add - applied_remove) == line_number,
-                None => false,
-            } {
+            while changes.peek().map_or(false, |c| match c.change_type {
+                // Adds are anchored to the context line above (i.e., the line at
+                // target_line_number)
+                LineChangeType::Add => c.line_number == target_line_number,
+                // Removes are anchored to actual line being removed (i.e. the line being currently
+                // processed which has line number 'target_line_number + 1'
+                LineChangeType::Remove => c.line_number == target_line_number + 1,
+            }) {
                 let change = changes.next().expect("there should be a change to extract");
                 match change.change_type {
                     LineChangeType::Add => {
                         // add this line to the vector of patched lines
                         patched_lines.push(change.line);
-                        applied_add += 1;
-                        line_number += 1;
                     }
                     LineChangeType::Remove => {
                         // remove this line by skipping it
                         assert_eq!(
                             line, change.line,
-                            "unexpected line difference in line {line_number}"
+                            "unexpected line difference in line {target_line_number}"
                         );
-                        applied_remove += 1;
+                        target_line_number += 1;
                         continue 'lines_loop;
                     }
                 }
@@ -198,12 +199,12 @@ impl AlignedPatch {
             // once all changes for this line_number have been applied, we can add the next
             // unchanged line
             patched_lines.push(line);
-            line_number += 1;
+            target_line_number += 1;
         }
 
         if changes.peek().is_some() {
             for change in changes {
-                eprint!("{change}");
+                eprint!("{}: {change}", change.line_number);
             }
             panic!("there were unprocessed changes in the patch");
         }
