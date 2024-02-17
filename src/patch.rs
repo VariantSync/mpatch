@@ -175,7 +175,7 @@ impl AlignedPatch {
         'lines_loop: for line in lines {
             while changes.peek().map_or(false, |c| match c.change_type {
                 // Adds are anchored to the context line above (i.e., lower than target_line_number)
-                LineChangeType::Add => c.line_number < target_line_number,
+                LineChangeType::Add => c.line_number <= target_line_number,
                 // Removes are anchored to actual line being removed (i.e. the line being currently
                 // processed which has line number 'target_line_number'
                 LineChangeType::Remove => c.line_number == target_line_number,
@@ -337,8 +337,16 @@ impl PartialOrd for Change {
 
 impl Ord for Change {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        match self.line_number().cmp(&other.line_number()) {
+        // First compare the line numbers to which the changes were matches
+        let ordering = self.line_number().cmp(&other.line_number());
+        // If they are equal, compare the change type
+        let ordering = match ordering {
             std::cmp::Ordering::Equal => self.change_type.cmp(&other.change_type),
+            ordering => return ordering,
+        };
+        // If they are equal as well, compare the change id
+        match ordering {
+            std::cmp::Ordering::Equal => self.change_id.cmp(&other.change_id),
             ordering => ordering,
         }
     }
@@ -418,7 +426,7 @@ mod tests {
             Change {
                 line: "ADDED".to_string(),
                 change_type: LineChangeType::Add,
-                line_number: 4,
+                line_number: 5,
                 change_id: 1,
             },
             Change {
@@ -430,7 +438,7 @@ mod tests {
             Change {
                 line: "ADDED".to_string(),
                 change_type: LineChangeType::Add,
-                line_number: 26,
+                line_number: 27,
                 change_id: 3,
             },
         ];

@@ -336,7 +336,7 @@ impl TryFrom<Vec<String>> for Hunk {
                     target_id += 1;
                 }
                 LineType::Add => {
-                    source_line = LineLocation::ChangeLocation(target_id);
+                    source_line = LineLocation::ChangeLocation(source_id);
                     target_line = LineLocation::RealLocation(target_id);
                     target_id += 1;
                 }
@@ -956,7 +956,7 @@ mod tests {
             (RealLocation(2), RealLocation(2)),
             (RealLocation(3), RealLocation(3)),
             (RealLocation(4), ChangeLocation(4)),
-            (ChangeLocation(4), RealLocation(4)),
+            (ChangeLocation(5), RealLocation(4)),
             (RealLocation(5), RealLocation(5)),
             (RealLocation(6), RealLocation(6)),
             (RealLocation(7), RealLocation(7)),
@@ -967,7 +967,7 @@ mod tests {
             println!("{line:?}");
             match old_id {
                 RealLocation(v) => old_id = RealLocation(v + offset_old),
-                ChangeLocation(v) => old_id = ChangeLocation(v + offset_new),
+                ChangeLocation(v) => old_id = ChangeLocation(v + offset_old),
                 crate::diffs::LineLocation::None => (),
             }
             match new_id {

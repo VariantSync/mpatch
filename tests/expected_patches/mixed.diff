@@ -11,5 +11,5 @@ diff -Naur version-0/mixed.c version-1/mixed.c
 +    res = factorial(number);
 @@ -21,9 +21,9 @@
 -    printf("Factorial of %d is %llu\n", number, result);
-@@ -21,9 +21,9 @@
+@@ -22,9 +22,9 @@
 +    printf("Factorial of %d is %llu\n", number, res);
