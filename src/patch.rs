@@ -40,6 +40,9 @@ impl FilePatch {
                 rejected_changes.push(change);
             }
         }
+
+        changes.sort();
+
         AlignedPatch {
             changes,
             rejected_changes,
@@ -195,18 +198,6 @@ impl AlignedPatch {
                 }
             }
 
-            changes.peek().map(|c| {
-                if c.change_type() == LineChangeType::Remove
-                    && c.line_number() <= target_line_number
-                {
-                    eprintln!("Missed removal of {}: {}", c.line_number, c.line);
-                    eprintln!("last line: {:?}", patched_lines.pop());
-                    eprintln!("current line: {line}");
-                    eprintln!("line number: {target_line_number}");
-                    panic!();
-                }
-            });
-
             // once all changes for this line_number have been applied, we can add the next
             // unchanged line
             patched_lines.push(line);
@@ -214,8 +205,7 @@ impl AlignedPatch {
         }
 
         // Apply the remaining changes
-        let mut should_panic = false;
-        while let Some(change) = changes.next() {
+        for change in changes {
             match change.change_type {
                 LineChangeType::Add => {
                     // add this line to the vector of patched lines
@@ -223,12 +213,9 @@ impl AlignedPatch {
                 }
                 LineChangeType::Remove => {
                     eprint!("{}: {change}", change.line_number);
-                    should_panic = true;
+                    panic!("there were unprocessed changes in the patch");
                 }
             }
-        }
-        if should_panic {
-            panic!("there were unprocessed changes in the patch");
         }
 
         let patched_file = FileArtifact::from_lines(path, patched_lines);
@@ -342,6 +329,21 @@ impl Change {
     }
 }
 
+impl PartialOrd for Change {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for Change {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        match self.line_number().cmp(&other.line_number()) {
+            std::cmp::Ordering::Equal => self.change_type.cmp(&other.change_type),
+            ordering => ordering,
+        }
+    }
+}
+
 impl Display for Change {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.change_type {
@@ -355,6 +357,27 @@ impl Display for Change {
 pub enum LineChangeType {
     Add,
     Remove,
+}
+
+impl PartialOrd for LineChangeType {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for LineChangeType {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        match self {
+            LineChangeType::Add => match other {
+                LineChangeType::Add => std::cmp::Ordering::Equal,
+                LineChangeType::Remove => std::cmp::Ordering::Greater,
+            },
+            LineChangeType::Remove => match other {
+                LineChangeType::Add => std::cmp::Ordering::Less,
+                LineChangeType::Remove => std::cmp::Ordering::Equal,
+            },
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
