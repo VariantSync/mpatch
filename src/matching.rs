@@ -93,6 +93,7 @@ impl Matcher for LCSMatcher {
         let mut left_to_right = Vec::with_capacity(left.len());
         let mut right_to_left = Vec::with_capacity(right.len());
 
+        let mut last_line = None;
         for c in text_diff.iter_all_changes() {
             if c.old_index().is_some() {
                 assert_eq!(c.old_index().unwrap(), left_to_right.len());
@@ -102,7 +103,21 @@ impl Matcher for LCSMatcher {
                 assert_eq!(c.new_index().unwrap(), right_to_left.len());
                 right_to_left.push(c.old_index());
             }
+            last_line.replace(c);
         }
+
+        // Handle newlines at EOF, by creating an additional matching for the next line
+        if let Some(last_line) = last_line {
+            if !last_line.missing_newline() {
+                if last_line.old_index().is_some() {
+                    left_to_right.push(last_line.new_index().map(|i| i + 1));
+                }
+                if last_line.new_index().is_some() {
+                    left_to_right.push(last_line.old_index().map(|i| i + 1));
+                }
+            }
+        }
+
         Matching {
             source: left,
             target: right,
