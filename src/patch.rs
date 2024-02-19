@@ -26,12 +26,12 @@ impl FilePatch {
             let target_line_number = match change.change_type {
                 LineChangeType::Add => target_matching
                     .target_index_fuzzy(change.line_number)
+                    // Adds without a match are mapped to line 0 (i.e., prepend line)
                     .map(|match_id| match_id.unwrap_or(0)),
-                LineChangeType::Remove => target_matching
-                    .target_index(change.line_number)
-                    .unwrap_or_else(|| {
-                        panic!("the source line {} was never matched", change.line_number)
-                    }),
+                LineChangeType::Remove => {
+                    // Removals without a match are automatically rejected
+                    target_matching.target_index(change.line_number).flatten()
+                }
             };
             if let Some(target_line_number) = target_line_number {
                 change.line_number = target_line_number;

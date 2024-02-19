@@ -113,7 +113,7 @@ impl Matcher for LCSMatcher {
                     left_to_right.push(last_line.new_index().map(|i| i + 1));
                 }
                 if last_line.new_index().is_some() {
-                    left_to_right.push(last_line.old_index().map(|i| i + 1));
+                    right_to_left.push(last_line.old_index().map(|i| i + 1));
                 }
             }
         }
