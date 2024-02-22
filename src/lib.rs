@@ -11,9 +11,9 @@ use std::fs::File;
 use std::io::BufWriter;
 use std::path::PathBuf;
 
-pub use diffs::CommitDiff;
 pub use diffs::FileDiff;
 pub use diffs::Hunk;
+pub use diffs::VersionDiff;
 pub use error::Error;
 pub use error::ErrorKind;
 pub use io::FileArtifact;
@@ -35,7 +35,7 @@ pub fn apply_all(
     dryrun: bool,
     mut matcher: impl Matcher,
 ) -> Result<(), Error> {
-    let diff = CommitDiff::read(patch_file_path)?;
+    let diff = VersionDiff::read(patch_file_path)?;
 
     // We only create a rejects file if there are rejects
     let mut rejects_file: Option<BufWriter<File>> = None;

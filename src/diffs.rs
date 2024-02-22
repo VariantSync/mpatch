@@ -7,15 +7,18 @@ use std::{
 
 use crate::{Error, ErrorKind};
 
+/// A VersionDiff represents a diff between two versions of a project or parts of a projects.
+/// A VersionDiff comprises one of more FileDiffs which in turn represent diffs for individual
+/// files.
 #[derive(Debug, Clone)]
-pub struct CommitDiff {
+pub struct VersionDiff {
     file_diffs: Vec<FileDiff>,
 }
 
-impl CommitDiff {
-    pub fn read<P: AsRef<Path>>(path: P) -> Result<CommitDiff, Error> {
+impl VersionDiff {
+    pub fn read<P: AsRef<Path>>(path: P) -> Result<VersionDiff, Error> {
         let content = std::fs::read_to_string(path)?;
-        CommitDiff::try_from(content)
+        VersionDiff::try_from(content)
     }
 
     pub fn file_diffs(&self) -> &[FileDiff] {
@@ -36,7 +39,7 @@ impl CommitDiff {
     }
 }
 
-impl IntoIterator for CommitDiff {
+impl IntoIterator for VersionDiff {
     type Item = FileDiff;
 
     type IntoIter = IntoIter<FileDiff>;
@@ -46,7 +49,7 @@ impl IntoIterator for CommitDiff {
     }
 }
 
-impl Display for CommitDiff {
+impl Display for VersionDiff {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut multiple = false;
         for file_diff in &self.file_diffs {
@@ -60,7 +63,7 @@ impl Display for CommitDiff {
     }
 }
 
-impl TryFrom<String> for CommitDiff {
+impl TryFrom<String> for VersionDiff {
     type Error = crate::Error;
 
     fn try_from(content: String) -> Result<Self, Self::Error> {

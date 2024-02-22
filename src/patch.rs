@@ -407,13 +407,13 @@ impl Display for FileChangeType {
 
 #[cfg(test)]
 mod tests {
-    use crate::CommitDiff;
+    use crate::VersionDiff;
 
     use super::{Change, FilePatch, LineChangeType};
 
     #[test]
     fn patch_from_diff() {
-        let file_diff = CommitDiff::read("tests/diffs/simple.diff").unwrap();
+        let file_diff = VersionDiff::read("tests/diffs/simple.diff").unwrap();
         let file_diff = file_diff.file_diffs().first().unwrap().clone();
 
         let expected_changes = [

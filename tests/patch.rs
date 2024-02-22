@@ -1,6 +1,6 @@
 use mpatch::{
     patch::{AlignedPatch, FilePatch},
-    CommitDiff, FileArtifact, LCSMatcher, Matcher,
+    FileArtifact, LCSMatcher, Matcher, VersionDiff,
 };
 
 // TODO: Test multi-alignment
@@ -185,7 +185,7 @@ pub fn run_application_test(
 }
 
 pub fn read_patch(path: &str) -> FilePatch {
-    let diff = CommitDiff::read(path)
+    let diff = VersionDiff::read(path)
         .unwrap()
         .file_diffs()
         .first()

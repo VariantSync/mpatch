@@ -2,13 +2,13 @@ use std::fs;
 
 use mpatch::{
     diffs::{ChangedLines, LineLocation, LineType},
-    CommitDiff, FileDiff,
+    FileDiff, VersionDiff,
 };
 
 const DIFF_FILE: &str = "tests/diffs/base_patch.diff";
 
 fn load_diffs() -> Vec<FileDiff> {
-    let diff = CommitDiff::read(DIFF_FILE).unwrap();
+    let diff = VersionDiff::read(DIFF_FILE).unwrap();
     let file_diffs = diff.file_diffs();
     assert_eq!(3, file_diffs.len());
     diff.file_diffs().to_vec()
@@ -119,7 +119,7 @@ fn parse_line_type() {
 
 #[test]
 fn unparse_commit_diff() {
-    let diff = CommitDiff::read(DIFF_FILE).unwrap();
+    let diff = VersionDiff::read(DIFF_FILE).unwrap();
     let diff_text = fs::read_to_string(DIFF_FILE).unwrap();
 
     assert_eq!(diff.to_string(), diff_text.trim_end());
@@ -189,7 +189,7 @@ fn unparse_file_diffs() {
 
 #[test]
 fn retrieve_changes_per_file() {
-    let diff = CommitDiff::read(DIFF_FILE).unwrap();
+    let diff = VersionDiff::read(DIFF_FILE).unwrap();
     let file_diff = &diff.file_diffs()[0];
     let changes = file_diff.changes();
     assert_eq!((1, 0), count_changes(changes));
@@ -220,7 +220,7 @@ use mpatch::diffs::LineLocation::{ChangeLocation, RealLocation};
 
 #[test]
 fn locate_changes_per_file() {
-    let diff = CommitDiff::read(DIFF_FILE).unwrap();
+    let diff = VersionDiff::read(DIFF_FILE).unwrap();
 
     let file_diff = &diff.file_diffs()[0];
     let changes = file_diff.changes();
