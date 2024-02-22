@@ -6,14 +6,12 @@
 
 pub mod diffs;
 pub mod error;
-pub mod files;
+pub mod io;
 pub mod matching;
 pub mod patch;
 
 use std::fs::File;
 use std::io::BufWriter;
-use std::io::Write;
-use std::path::Path;
 use std::path::PathBuf;
 
 pub use diffs::CommitDiff;
@@ -21,12 +19,15 @@ pub use diffs::FileDiff;
 pub use diffs::Hunk;
 pub use error::Error;
 pub use error::ErrorKind;
-pub use files::FileArtifact;
-use files::StrippedPath;
+pub use io::FileArtifact;
 pub use matching::LCSMatcher;
 pub use matching::Matcher;
-use patch::Change;
 use patch::FilePatch;
+
+use crate::io::print_rejects;
+use crate::io::read_or_create_empty;
+use crate::io::write_rejects;
+use crate::io::StrippedPath;
 
 pub fn apply_all(
     source_dir_path: PathBuf,
@@ -84,37 +85,5 @@ pub fn apply_all(
         }
     }
 
-    Ok(())
-}
-
-fn read_or_create_empty(pathbuf: PathBuf) -> Result<FileArtifact, Error> {
-    Ok(if Path::exists(&pathbuf) {
-        FileArtifact::read(&pathbuf)?
-    } else {
-        FileArtifact::new(pathbuf)
-    })
-}
-
-fn print_rejects(diff_header: String, rejects: &[Change]) {
-    println!("{diff_header}");
-    for reject in rejects {
-        print!("{}: {}", reject.change_id(), reject);
-    }
-}
-
-fn write_rejects<P: AsRef<Path>>(
-    diff_header: String,
-    rejects: &[Change],
-    rejects_file: &mut Option<BufWriter<File>>,
-    path: P,
-) -> Result<(), Error> {
-    // Create the rejects file on demand
-    let file_writer = rejects_file.get_or_insert_with(|| {
-        BufWriter::new(File::create_new(&path).expect("rejects file already exists!"))
-    });
-    file_writer.write_fmt(format_args!("{}\n", diff_header))?;
-    for reject in rejects {
-        file_writer.write_fmt(format_args!("{}: {}", reject.change_id(), reject))?
-    }
     Ok(())
 }
