@@ -733,15 +733,19 @@ impl TryFrom<&str> for TargetFile {
 /// path and timestamp.
 fn split_file_metainfo(input: String) -> Result<(String, String), Error> {
     let parts: Vec<&str> = input.split_whitespace().collect();
-    if parts.len() != 5 {
-        return Err(Error::new(
-            "invalid format: incorrect number of elements",
-            ErrorKind::DiffParseError,
-        ));
-    }
 
-    let path = parts[1].to_string();
-    let timestamp = format!("{} {} {}", parts[2], parts[3], parts[4]);
+    let path_id = 1;
+    let path = parts[path_id].to_string();
+
+    let mut timestamp = String::new();
+    let timestamp_start = 2;
+    for (i, part) in parts.into_iter().skip(timestamp_start).enumerate() {
+        if i > 0 {
+            // Add whitespace before each added part after the first one
+            timestamp.push(' ');
+        }
+        timestamp.push_str(part);
+    }
 
     Ok((path, timestamp))
 }
