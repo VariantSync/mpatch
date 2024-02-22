@@ -1,8 +1,5 @@
-// TODO: Recognize file creation
-// TODO: Recognize file deletion
 // TODO: Feature traces and target configuration are part of the input!
 // TODO: Handle git diffs as well; they have differences e.g., /dev/null, permission change
-// TODO: Test patching of binary files
 
 pub mod diffs;
 pub mod error;
