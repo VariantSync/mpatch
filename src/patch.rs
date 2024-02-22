@@ -93,7 +93,7 @@ impl From<FileDiff> for FilePatch {
             }
 
             changes.push(Change {
-                line: line.into_text(),
+                line: line.into_original_text(),
                 change_type,
                 line_number,
                 change_id,

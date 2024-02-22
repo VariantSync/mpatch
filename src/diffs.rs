@@ -8,7 +8,7 @@ use std::{
 use crate::{Error, ErrorKind};
 
 /// A VersionDiff represents a diff between two versions of a project or parts of a projects.
-/// A VersionDiff comprises one of more FileDiffs which in turn represent diffs for individual
+/// A VersionDiff comprises one or more FileDiffs which in turn represent diffs for individual
 /// files.
 #[derive(Debug, Clone)]
 pub struct VersionDiff {
@@ -16,24 +16,32 @@ pub struct VersionDiff {
 }
 
 impl VersionDiff {
+    /// Reads a diff file and tries to parse it into a VersionDiff.
+    ///
+    /// # Error
+    /// This function returns an error if the file cannot be read or if the file's content cannot
+    /// be parsed into a VersionDiff.
     pub fn read<P: AsRef<Path>>(path: P) -> Result<VersionDiff, Error> {
         let content = std::fs::read_to_string(path)?;
         VersionDiff::try_from(content)
     }
 
+    /// Returns a reference to the slice of FileDiffs in this VersionDiff.
     pub fn file_diffs(&self) -> &[FileDiff] {
         self.file_diffs.as_slice()
     }
 
+    /// Returns the number of FileDiffs in this VersionDiff.
     pub fn len(&self) -> usize {
         self.file_diffs.len()
     }
 
-    #[must_use]
+    /// Returns true if this VersionDiff contains no FileDiffs, otherwise returns false.
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
 
+    /// Returns a mutable reference to the slice of FileDiffs in this VersionDiff.
     pub fn file_diffs_mut(&mut self) -> &mut [FileDiff] {
         self.file_diffs.as_mut_slice()
     }
@@ -96,6 +104,10 @@ impl TryFrom<String> for VersionDiff {
     }
 }
 
+/// A FileDiff represents a diff between two versions of a file.
+/// Each FileDiff contains a DiffCommand (i.e., its header line), a source and a target file, and
+/// one or more hunks.
+/// Hunks contain grouped changes to lines.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FileDiff {
     diff_command: DiffCommand,
@@ -126,26 +138,38 @@ impl Display for FileDiff {
 }
 
 impl FileDiff {
+    /// Returns the header of this FileDiff (i.e., the DiffCommand used to generate it).
     pub fn diff_command(&self) -> &DiffCommand {
         &self.diff_command
     }
 
+    /// Returns the source file of the diff operation (i.e., the file assumed to be the older
+    /// version).
     pub fn source_file(&self) -> &SourceFile {
         &self.source_file
     }
 
+    /// Returns the target file of the diff operation (i.e., the file assumed to be the newer
+    /// version).
     pub fn target_file(&self) -> &TargetFile {
         &self.target_file
     }
 
+    /// Returns a reference to the hunks contained in the FileDiff.
     pub fn hunks(&self) -> &[Hunk] {
         self.hunks.as_ref()
     }
 
+    /// Returns a mutable reference to the hunks contained in the FileDiff.
     pub fn hunks_mut(&mut self) -> &mut [Hunk] {
         self.hunks.as_mut_slice()
     }
 
+    /// Collects all changes in this FileDiff and returns an iterator over their references.
+    ///
+    /// # Returns
+    /// Returns a ChangedLines iterator that iterates all HunkLine instances containing changes.
+    ///
     pub fn changes(&self) -> ChangedLines {
         let changes: Vec<&HunkLine> = self
             .hunks()
@@ -158,6 +182,12 @@ impl FileDiff {
         ChangedLines { changes }
     }
 
+    /// Collects and takes owenership of all changes in this FileDiff and returns and iterator over
+    /// them. This method consumes the FileDiff.
+    ///
+    /// # Returns
+    /// Returns an IntoChangedLines iterator that iterates all HunkLine instances containing changes.
+    ///
     pub fn into_changes(self) -> IntoChangedLines {
         let changes: Vec<HunkLine> = self
             .hunks
@@ -170,6 +200,8 @@ impl FileDiff {
         IntoChangedLines { changes }
     }
 
+    /// Generates and returns the full header of this FileDiff containing the DiffCommand, the
+    /// information about the source file, and the information about the target file.
     pub fn header(&self) -> String {
         format!(
             "{}\n--- {}\t{}\n+++ {}\t{}",
@@ -182,9 +214,10 @@ impl FileDiff {
     }
 }
 
+/// Iterator over references of HunkLines constituting line changes.
 pub struct ChangedLines<'a> {
-    // changes in reverse order
-    // the order is reversed to allow pop operations
+    // In all current intatiations of ChangedLines, the changes are provided in reverse order to
+    // allow for pop operations while maintaining the original order of the changes.
     changes: Vec<&'a HunkLine>,
 }
 
@@ -196,9 +229,10 @@ impl<'a> Iterator for ChangedLines<'a> {
     }
 }
 
+/// Iterator over owned instances of HunkLines constituting line changes.
 pub struct IntoChangedLines {
-    // changes in reverse order
-    // the order is reversed to allow pop operations
+    // In all current intatiations of IntoChangedLines, the changes are provided in reverse order to
+    // allow for pop operations while maintaining the original order of the changes.
     changes: Vec<HunkLine>,
 }
 
@@ -215,6 +249,8 @@ impl TryFrom<Vec<String>> for FileDiff {
 
     fn try_from(lines: Vec<String>) -> Result<Self, Self::Error> {
         let mut lines = lines.into_iter();
+
+        // Parse the diff command
         let diff_command = lines.next().unwrap();
         if !diff_command.starts_with("diff ") {
             return Err(Error::new(
@@ -222,8 +258,13 @@ impl TryFrom<Vec<String>> for FileDiff {
                 ErrorKind::DiffParseError,
             ));
         }
+        let diff_command = DiffCommand(diff_command);
+
+        // Parse the source and target files
         let source_file = SourceFile::try_from(lines.next().unwrap())?;
         let target_file = TargetFile::try_from(lines.next().unwrap())?;
+
+        // Parse the hunks
         let mut hunk_lines = vec![];
         let mut hunks = vec![];
         for line in lines {
@@ -239,7 +280,7 @@ impl TryFrom<Vec<String>> for FileDiff {
         if !hunk_lines.is_empty() {
             hunks.push(Hunk::try_from(hunk_lines)?);
         }
-        let diff_command = DiffCommand(diff_command);
+
         Ok(FileDiff {
             diff_command,
             source_file,
@@ -249,6 +290,7 @@ impl TryFrom<Vec<String>> for FileDiff {
     }
 }
 
+/// A DiffCommand holds the exact call to diff used to create a FileDiff (e.g., "diff -Naur ...").
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct DiffCommand(pub String);
 
@@ -258,6 +300,12 @@ impl Display for DiffCommand {
     }
 }
 
+/// A Hunk consists of a source location, a target location, and one or more HunkLines.
+/// The locations describe the start and length of the changed text by line number.
+/// The source location specifies the location before the changes (i.e., the state in the source
+/// file).
+/// The target location specifies the location after the changes (i.e., the state in the target
+/// file).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Hunk {
     source_location: HunkLocation,
@@ -266,6 +314,9 @@ pub struct Hunk {
 }
 
 impl Hunk {
+    /// Parses the location line of the hunk into two HunkLocation instances, one for the source
+    /// and one for the target.
+    ///
     fn parse_location_line(line: &str) -> Result<(HunkLocation, HunkLocation), Error> {
         if !line.starts_with("@@ ") || !line.ends_with(" @@") {
             return Err(Error::new(
@@ -289,14 +340,17 @@ impl Hunk {
         Ok((hunk_locations[0].unwrap(), hunk_locations[1].unwrap()))
     }
 
+    /// Returns the source location of this Hunk.
     pub fn source_location(&self) -> HunkLocation {
         self.source_location
     }
 
+    /// Returns the target location of this Hunk.
     pub fn target_location(&self) -> HunkLocation {
         self.target_location
     }
 
+    /// Returns a reference to the HunkLines of this Hunk.
     pub fn lines(&self) -> &[HunkLine] {
         self.lines.as_ref()
     }
@@ -321,10 +375,13 @@ impl TryFrom<Vec<String>> for Hunk {
 
     fn try_from(lines: Vec<String>) -> Result<Self, Self::Error> {
         let mut lines = lines.into_iter();
+
+        // Parse the source and target location
         let (source_location, target_location) =
             Hunk::parse_location_line(&lines.next().unwrap()).unwrap();
-        let mut hunk_lines = vec![];
 
+        // Parse the hunk lines
+        let mut hunk_lines = vec![];
         let mut source_id = source_location.hunk_start;
         let mut target_id = target_location.hunk_start;
         for line in lines {
@@ -333,23 +390,26 @@ impl TryFrom<Vec<String>> for Hunk {
             let target_line;
             match line_type {
                 LineType::Context => {
+                    // Context lines exist in source and target
                     source_line = LineLocation::RealLocation(source_id);
                     source_id += 1;
                     target_line = LineLocation::RealLocation(target_id);
                     target_id += 1;
                 }
                 LineType::Add => {
+                    // Added lines only exist in the target
                     source_line = LineLocation::ChangeLocation(source_id);
                     target_line = LineLocation::RealLocation(target_id);
                     target_id += 1;
                 }
-
                 LineType::Remove => {
+                    // Removed lines only exist in the source
                     source_line = LineLocation::RealLocation(source_id);
                     source_id += 1;
                     target_line = LineLocation::ChangeLocation(target_id);
                 }
                 LineType::EOF => {
+                    // EOF describe missing newline characters at the end of the file.
                     source_line = LineLocation::None;
                     target_line = LineLocation::None;
                 }
@@ -365,6 +425,7 @@ impl TryFrom<Vec<String>> for Hunk {
     }
 }
 
+/// A HunkLocation defines the location of a Hunk by its line number and length in lines.
 #[derive(Clone, Copy, Debug, PartialEq, PartialOrd, Eq, Ord)]
 pub struct HunkLocation {
     hunk_start: usize,
@@ -372,10 +433,12 @@ pub struct HunkLocation {
 }
 
 impl HunkLocation {
+    /// Returns the start line number of this hunk. The first line has line number '1'.
     pub fn hunk_start(&self) -> usize {
         self.hunk_start
     }
 
+    /// Returns the length of this hunk in lines (i.e., the number of HunkLines).
     pub fn hunk_length(&self) -> usize {
         self.hunk_length
     }
@@ -432,6 +495,9 @@ impl TryFrom<&str> for HunkLocation {
     }
 }
 
+/// A HunkLine contains the information about a single line in a Hunk.
+/// A HunkLine stores the text of the line, its location in the source file, its location in the
+/// target file, and its LineType.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct HunkLine {
     line: String,
@@ -440,6 +506,10 @@ pub struct HunkLine {
     line_type: LineType,
 }
 
+/// A LineLocation can be a RealLocation (i.e., the line actually exists in the file at that
+/// location), a ChangeLocation (i.e., the line will be added or has been removed from this
+/// location), or None (i.e., the line is not actually part of source or target).
+/// The latter is the case for EOF markings in a hunk.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum LineLocation {
     RealLocation(usize),
@@ -448,6 +518,10 @@ pub enum LineLocation {
 }
 
 impl LineLocation {
+    /// Unwraps this LineLocation instance into its RealLocation value.
+    ///
+    /// # Panics
+    /// This method panics if the LineLocation is not a RealLocation variant.
     pub fn real_location(&self) -> usize {
         if let LineLocation::RealLocation(value) = self {
             *value
@@ -456,6 +530,10 @@ impl LineLocation {
         }
     }
 
+    /// Unwraps this LineLocation instance into its ChangeLocation value.
+    ///
+    /// # Panics
+    /// This method panics if the LineLocation is not a ChangeLocation variant.
     pub fn change_location(&self) -> usize {
         if let LineLocation::ChangeLocation(value) = self {
             *value
@@ -466,14 +544,17 @@ impl LineLocation {
 }
 
 impl HunkLine {
+    /// Returns the content (i.e., the text) of this line.
     pub fn content(&self) -> &str {
         self.line.as_ref()
     }
 
+    /// Returns the line type of this line.
     pub fn line_type(&self) -> LineType {
         self.line_type
     }
 
+    /// Constructs a new HunkLine from the given locations, type, and text.
     pub fn new(
         source_line: LineLocation,
         target_line: LineLocation,
@@ -488,16 +569,18 @@ impl HunkLine {
         })
     }
 
+    /// Returns the line's location in the source file.
     pub fn source_line(&self) -> LineLocation {
         self.source_line
     }
 
+    /// Returns the line's location in the target file.
     pub fn target_line(&self) -> LineLocation {
         self.target_line
     }
 
-    /// Returns the content of the hunk line after the meta-symbol that defines the change type
-    pub fn into_text(mut self) -> String {
+    /// Returns the content of the hunk line after the meta-symbol that defines the change type.
+    pub fn into_original_text(mut self) -> String {
         self.line.split_off(1)
     }
 }
@@ -508,15 +591,23 @@ impl Display for HunkLine {
     }
 }
 
+/// Defines the type of a HunkLine (i.e., Context, Add, Remove, EOF).
 #[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Clone, Copy)]
 pub enum LineType {
+    /// A context line in a diff that starts with a space ' ' as first character and represents an
+    /// unchanged line.
     Context,
+    /// A line that has been added to the target file (i.e., it does not exist in the source file).
     Add,
+    /// A line that has been removed from the target file (i.e., it only exists in the source
+    /// file).
     Remove,
+    /// An EOF metaline (i.e., "\No newline at end of file").
     EOF,
 }
 
 impl LineType {
+    /// Determines the LineType of the given line.
     fn determine_type(line: &str) -> Result<LineType, Error> {
         if line == "\\ No newline at end of file" {
             return Ok(LineType::EOF);
@@ -540,6 +631,8 @@ impl LineType {
     }
 }
 
+/// A SourceFile holds the path to the source file and the timestamp of when it was read for
+/// diffing.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SourceFile {
     path: String,
@@ -548,14 +641,17 @@ pub struct SourceFile {
 }
 
 impl SourceFile {
+    /// Returns the path to the source file as &str.
     pub fn path_str(&self) -> &str {
         self.path.as_ref()
     }
 
+    /// Returns the path to the source file as owned PathBuf.
     pub fn path(&self) -> PathBuf {
         PathBuf::from_str(&self.path).expect("paths must be UTF-8 encoded")
     }
 
+    /// Returns the text of the timestamp of the time when this file was diffed.
     pub fn timestamp(&self) -> &str {
         self.timestamp.as_ref()
     }
@@ -571,7 +667,7 @@ impl TryFrom<String> for SourceFile {
                 ErrorKind::DiffParseError,
             ));
         }
-        let (path, timestamp) = parse_file_line(line)?;
+        let (path, timestamp) = split_file_metainfo(line)?;
         Ok(Self { path, timestamp })
     }
 }
@@ -584,6 +680,8 @@ impl TryFrom<&str> for SourceFile {
     }
 }
 
+/// A TargetFile holds the path to the target file and the timestamp of when it was read for
+/// diffing.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TargetFile {
     path: String,
@@ -592,14 +690,17 @@ pub struct TargetFile {
 }
 
 impl TargetFile {
+    /// Returns the path to the target file as &str.
     pub fn path_str(&self) -> &str {
         self.path.as_ref()
     }
 
+    /// Returns the path to the target file as owned PathBuf.
     pub fn path(&self) -> PathBuf {
         PathBuf::from_str(&self.path).expect("paths must be UTF-8 encoded")
     }
 
+    /// Returns the text of the timestamp of the time when this file was diffed.
     pub fn timestamp(&self) -> &str {
         self.timestamp.as_ref()
     }
@@ -615,7 +716,7 @@ impl TryFrom<String> for TargetFile {
                 ErrorKind::DiffParseError,
             ));
         }
-        let (path, timestamp) = parse_file_line(line)?;
+        let (path, timestamp) = split_file_metainfo(line)?;
         Ok(Self { path, timestamp })
     }
 }
@@ -628,7 +729,9 @@ impl TryFrom<&str> for TargetFile {
     }
 }
 
-fn parse_file_line(input: String) -> Result<(String, String), Error> {
+/// Splits the lines specifying the meta-information about the source and target files into file
+/// path and timestamp.
+fn split_file_metainfo(input: String) -> Result<(String, String), Error> {
     let parts: Vec<&str> = input.split_whitespace().collect();
     if parts.len() != 5 {
         return Err(Error::new(
