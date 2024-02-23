@@ -28,12 +28,12 @@ use crate::FileArtifact;
 ///         // without -1 offset.
 ///         // This means that if the first line of both files matches the entries of the vectors look
 ///         // as follows:
-///         // - source_to_target[0] == Some(1)
-///         // - target_to_source[0] == Some(1)
+///         // source_to_target[0] == Some(1)
+///         // target_to_source[0] == Some(1)
 ///         //
 ///         // Note that the getter methods of the Matching struct abstract this implementation detail:
-///         // - matching.target_index(1) == Some(1)
-///         // - matching.source_index(1) == Some(1)
+///         // matching.target_index(1) == Some(1)
+///         // matching.source_index(1) == Some(1)
 ///         for (line_number, (source_line, target_line)) in
 ///             source.lines().iter().zip(target.lines()).enumerate()
 ///         {
@@ -97,12 +97,12 @@ pub trait Matcher {
     ///    // without -1 offset.
     ///    // This means that if the first line of both files matches the entries of the vectors look
     ///    // as follows:
-    ///    // - source_to_target[0] == Some(1)
-    ///    // - target_to_source[0] == Some(1)
+    ///    // source_to_target[0] == Some(1)
+    ///    // target_to_source[0] == Some(1)
     ///    //
     ///    // Note that the getter methods of the Matching struct abstract this implementation detail:
-    ///    // - matching.target_index(1) == Some(1)
-    ///    // - matching.source_index(1) == Some(1)
+    ///    // matching.target_index(1) == Some(1)
+    ///    // matching.source_index(1) == Some(1)
     ///    for (line_number, (source_line, target_line)) in
     ///        source.lines().iter().zip(target.lines()).enumerate()
     ///    {
