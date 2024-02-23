@@ -27,7 +27,7 @@ impl FilePatch {
                 LineChangeType::Add => target_matching
                     .target_index_fuzzy(change.line_number)
                     // Adds without a match are mapped to line 0 (i.e., prepend line)
-                    .map(|match_id| match_id.unwrap_or(0)),
+                    .or(Some(0)),
                 LineChangeType::Remove => {
                     // Removals without a match are automatically rejected
                     target_matching.target_index(change.line_number).flatten()

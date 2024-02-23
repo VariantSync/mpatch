@@ -119,6 +119,14 @@ pub trait Matcher {
     fn match_files(&mut self, source: FileArtifact, target: FileArtifact) -> Matching;
 }
 
+/// A matching holds the information about lines that have been matched between a source and a
+/// target file. To this end, the matching controls two vectors of match ids: one with matchings
+/// for the lines in the source file, and one with matchings for lines in the target file.
+/// This allows for quick access to the matches by line number.
+///
+/// Furthermore, a matching owns the instances of the FileArtifacts that have been matched. This
+/// ensures that the matched FileArtifacts are not altered. Note that this does not prevent the
+/// actual file being modified on disk.
 pub struct Matching {
     source: FileArtifact,
     target: FileArtifact,
@@ -126,9 +134,20 @@ pub struct Matching {
     target_to_source: Vec<MatchId>,
 }
 
+/// A MatchId is simply and Option<usize> where the usize is a line number in the interval [1,n].
 pub type MatchId = Option<usize>;
 
 impl Matching {
+    /// Creates a new Matching from the given source and target files and match id vectors.  
+    /// Each line in the source and target must have an entry in the corresponding d vector at position `line_number-1`.
+    /// The match for a line is stored as line number of its counterpart in the other file without -1 offset.
+    /// This means that if the first line of both files matches, the entries of the vectors look as follows:
+    /// source_to_target[0] == Some(1)
+    /// target_to_source[0] == Some(1)
+    ///
+    /// Note that the getter methods of the Matching struct abstract this implementation detail:
+    /// matching.target_index(1) == Some(1)
+    /// matching.source_index(1) == Some(1)
     pub fn new(
         source: FileArtifact,
         target: FileArtifact,
@@ -142,6 +161,17 @@ impl Matching {
             target_to_source,
         }
     }
+
+    /// Returns the match in the target file for a line number of the source file.
+    ///
+    /// ## Input
+    /// source_index: specifies the line number of a line in the source file for which the match
+    /// should be retrieved.
+    ///
+    /// ## Output
+    /// Returns None if the source line has not been processed by the matcher. Returns
+    /// Some(MatchId) if the source line has been processed. The returned MatchId is Some if there
+    /// is a match in the target file; otherwise, it is None.
     pub fn target_index(&self, source_index: usize) -> Option<MatchId> {
         // To represent line numbers in files we offset the index by '1'
         // A negative offset is applied to the input index (e.g., line 1 is stored at index 0)
@@ -153,6 +183,16 @@ impl Matching {
             .map(|v| v.map(|v| v + 1))
     }
 
+    /// Returns the match in the source file for a line number of the target file.
+    ///
+    /// ## Input
+    /// target_index: specifies the line number of a line in the target file for which the match
+    /// should be retrieved.
+    ///
+    /// ## Output
+    /// Returns None if the target line has not been processed by the matcher. Returns
+    /// Some(MatchId) if the target line has been processed. The returned MatchId is Some if there
+    /// is a match in the source file; otherwise, it is None.
     pub fn source_index(&self, target_index: usize) -> Option<MatchId> {
         self.target_to_source
             .get(target_index - 1)
@@ -160,23 +200,39 @@ impl Matching {
             .map(|v| v.map(|v| v + 1))
     }
 
+    /// Returns a reference to the source file instance.
     pub fn source(&self) -> &FileArtifact {
         &self.source
     }
 
+    /// Returns a reference to the target file instance.
     pub fn target(&self) -> &FileArtifact {
         &self.target
     }
 
+    /// Consumes this matching and returns ownership of the source file.
     pub fn into_source(self) -> FileArtifact {
         self.source
     }
 
+    /// Consumes this matching and returns ownership of the target file.
     pub fn into_target(self) -> FileArtifact {
         self.target
     }
 
-    pub(crate) fn target_index_fuzzy(&self, line_number: usize) -> Option<MatchId> {
+    /// Searches for closest line above the given source line that has a match in the target file.
+    /// This means considers the source lines above the given line number until a line with a match
+    /// in the target file is found. It then returns the match id of the corresponding target line.
+    /// If the given line number has a match itself, this match is returned.
+    ///
+    /// ## Input
+    /// source_index: specifies the line number of a line in the source file for which the fuzzy match
+    /// should be retrieved.
+    ///
+    /// ## Output
+    /// Returns None if there is no matched line at or above the given line number. Returns
+    /// Some(usize) with the target line number if a match has been found.
+    pub(crate) fn target_index_fuzzy(&self, line_number: usize) -> MatchId {
         let mut line_number = line_number;
 
         // Search for the closest context line above the change; i.e., key and value must both be
@@ -191,15 +247,16 @@ impl Matching {
         } else {
             let target_line = self.target_index(line_number);
             // The result must be Some(...) in all cases
-            assert!(target_line.is_some());
-            target_line
+            target_line.unwrap()
         }
     }
 }
 
+/// A simple matcher using the `similar` crate which offers implementations of the LCS algorithm.
 pub struct LCSMatcher;
 
 impl LCSMatcher {
+    /// Creates a new LCSMatcher
     pub fn new() -> Self {
         LCSMatcher
     }
