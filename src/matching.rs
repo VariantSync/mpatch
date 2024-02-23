@@ -334,4 +334,157 @@ impl HasNewline for Change<&str> {
 }
 
 #[cfg(test)]
-mod tests {}
+mod tests {
+    use std::{path::PathBuf, str::FromStr};
+
+    use crate::{FileArtifact, LCSMatcher, Matcher};
+
+    #[test]
+    fn simple_matching() {
+        // Initialze some simple FileArtifacts
+        let file_a = FileArtifact::from_lines(
+            PathBuf::from_str("file_a").unwrap(),
+            vec![
+                "SAME LINE".to_string(),
+                "ANOTHER LINE".to_string(),
+                "".to_string(),
+            ],
+        );
+        let file_b = FileArtifact::from_lines(
+            PathBuf::from_str("file_b").unwrap(),
+            vec![
+                "SAME LINE".to_string(),
+                "ANOTHER LINE".to_string(),
+                "".to_string(),
+            ],
+        );
+
+        let mut matcher = LCSMatcher::new();
+        let matching = matcher.match_files(file_a.clone(), file_b.clone());
+        assert_eq!(matching.source(), &file_a);
+        assert_eq!(matching.target(), &file_b);
+        assert_eq!(Some(1), matching.target_index(1).unwrap());
+        assert_eq!(Some(1), matching.source_index(1).unwrap());
+        assert_eq!(Some(2), matching.target_index(2).unwrap());
+        assert_eq!(Some(2), matching.source_index(2).unwrap());
+    }
+
+    #[test]
+    fn no_source_line_and_target_with_newline() {
+        // Initialze some simple FileArtifacts
+        let file_a = FileArtifact::from_lines(PathBuf::from_str("file_a").unwrap(), vec![]);
+        let file_b = FileArtifact::from_lines(
+            PathBuf::from_str("file_b").unwrap(),
+            vec!["SAME LINE".to_string(), "".to_string()],
+        );
+        let mut matcher = LCSMatcher::new();
+        let matching = matcher.match_files(file_a.clone(), file_b.clone());
+        assert_eq!(None, matching.target_index(1));
+        assert_eq!(Some(None), matching.source_index(1));
+        assert_eq!(Some(None), matching.source_index(2));
+    }
+
+    #[test]
+    fn no_source_line_and_target_without_newline() {
+        // Initialze some simple FileArtifacts
+        let file_a = FileArtifact::from_lines(PathBuf::from_str("file_a").unwrap(), vec![]);
+        let file_b = FileArtifact::from_lines(
+            PathBuf::from_str("file_b").unwrap(),
+            vec!["SAME LINE".to_string()],
+        );
+        let mut matcher = LCSMatcher::new();
+        let matching = matcher.match_files(file_a.clone(), file_b.clone());
+        assert_eq!(None, matching.target_index(1));
+        assert_eq!(Some(None), matching.source_index(1));
+        assert_eq!(None, matching.source_index(2));
+    }
+
+    #[test]
+    fn no_target_line_and_source_with_newline() {
+        // Initialze some simple FileArtifacts
+        let file_a = FileArtifact::from_lines(
+            PathBuf::from_str("file_b").unwrap(),
+            vec!["SAME LINE".to_string(), "".to_string()],
+        );
+
+        let file_b = FileArtifact::from_lines(PathBuf::from_str("file_a").unwrap(), vec![]);
+        let mut matcher = LCSMatcher::new();
+        let matching = matcher.match_files(file_a.clone(), file_b.clone());
+        assert_eq!(Some(None), matching.target_index(1));
+        assert_eq!(Some(None), matching.target_index(2));
+        assert_eq!(None, matching.source_index(1));
+    }
+
+    #[test]
+    fn no_target_line_and_source_without_newline() {
+        // Initialze some simple FileArtifacts
+        let file_a = FileArtifact::from_lines(
+            PathBuf::from_str("file_b").unwrap(),
+            vec!["SAME LINE".to_string()],
+        );
+
+        let file_b = FileArtifact::from_lines(PathBuf::from_str("file_a").unwrap(), vec![]);
+        let mut matcher = LCSMatcher::new();
+        let matching = matcher.match_files(file_a.clone(), file_b.clone());
+        assert_eq!(Some(None), matching.target_index(1));
+        assert_eq!(None, matching.target_index(2));
+        assert_eq!(None, matching.source_index(1));
+    }
+
+    #[test]
+    fn target_with_newline() {
+        // Initialze some simple FileArtifacts
+        let file_a = FileArtifact::from_lines(
+            PathBuf::from_str("file_a").unwrap(),
+            vec!["SAME LINE".to_string()],
+        );
+        let file_b = FileArtifact::from_lines(
+            PathBuf::from_str("file_b").unwrap(),
+            vec![
+                "SAME LINE".to_string(),
+                "ANOTHER LINE".to_string(),
+                "".to_string(),
+            ],
+        );
+        let mut matcher = LCSMatcher::new();
+        let matching = matcher.match_files(file_a.clone(), file_b.clone());
+        assert_eq!(None, matching.target_index(2));
+        assert_eq!(Some(None), matching.source_index(3));
+    }
+
+    #[test]
+    fn source_with_newline() {
+        // Initialze some simple FileArtifacts
+        let file_a = FileArtifact::from_lines(
+            PathBuf::from_str("file_a").unwrap(),
+            vec!["SAME LINE".to_string(), "".to_string()],
+        );
+        let file_b = FileArtifact::from_lines(
+            PathBuf::from_str("file_b").unwrap(),
+            vec!["SAME LINE".to_string(), "ANOTHER LINE".to_string()],
+        );
+        let mut matcher = LCSMatcher::new();
+        let matching = matcher.match_files(file_a.clone(), file_b.clone());
+        assert_eq!(Some(None), matching.target_index(2));
+        assert_eq!(None, matching.source_index(3));
+    }
+
+    #[test]
+    fn source_and_target_with_newline() {
+        // Initialze some simple FileArtifacts
+        let file_a = FileArtifact::from_lines(
+            PathBuf::from_str("file_a").unwrap(),
+            vec!["SOURCE LINE".to_string(), "".to_string()],
+        );
+        let file_b = FileArtifact::from_lines(
+            PathBuf::from_str("file_b").unwrap(),
+            vec!["TARGET LINE".to_string(), "".to_string()],
+        );
+        let mut matcher = LCSMatcher::new();
+        let matching = matcher.match_files(file_a.clone(), file_b.clone());
+        assert_eq!(Some(None), matching.target_index(1));
+        assert_eq!(Some(None), matching.source_index(1));
+        assert_eq!(Some(Some(2)), matching.target_index(2));
+        assert_eq!(Some(Some(2)), matching.source_index(2));
+    }
+}
