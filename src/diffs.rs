@@ -40,11 +40,6 @@ impl VersionDiff {
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
-
-    /// Returns a mutable reference to the slice of FileDiffs in this VersionDiff.
-    pub fn file_diffs_mut(&mut self) -> &mut [FileDiff] {
-        self.file_diffs.as_mut_slice()
-    }
 }
 
 impl IntoIterator for VersionDiff {
@@ -159,11 +154,6 @@ impl FileDiff {
     /// Returns a reference to the hunks contained in the FileDiff.
     pub fn hunks(&self) -> &[Hunk] {
         &self.hunks
-    }
-
-    /// Returns a mutable reference to the hunks contained in the FileDiff.
-    pub fn hunks_mut(&mut self) -> &mut [Hunk] {
-        &mut self.hunks
     }
 
     /// Collects all changes in this FileDiff and returns an iterator over their references.
@@ -354,7 +344,7 @@ impl Hunk {
 
     /// Returns a reference to the HunkLines of this Hunk.
     pub fn lines(&self) -> &[HunkLine] {
-        self.lines.as_ref()
+        &self.lines
     }
 }
 
@@ -547,7 +537,7 @@ impl LineLocation {
 impl HunkLine {
     /// Returns the content (i.e., the text) of this line.
     pub fn content(&self) -> &str {
-        self.line.as_ref()
+        &self.line
     }
 
     /// Returns the line type of this line.
@@ -644,7 +634,7 @@ pub struct SourceFile {
 impl SourceFile {
     /// Returns the path to the source file as &str.
     pub fn path_str(&self) -> &str {
-        self.path.as_ref()
+        &self.path
     }
 
     /// Returns the path to the source file as owned PathBuf.
@@ -654,7 +644,7 @@ impl SourceFile {
 
     /// Returns the text of the timestamp of the time when this file was diffed.
     pub fn timestamp(&self) -> &str {
-        self.timestamp.as_ref()
+        &self.timestamp
     }
 }
 
@@ -664,7 +654,7 @@ impl TryFrom<String> for SourceFile {
     fn try_from(line: String) -> Result<Self, Self::Error> {
         if !line.starts_with("--- ") {
             return Err(Error::new(
-                "invalid format: does not start with '--- '",
+                "invalid format: line does not start with '--- '",
                 ErrorKind::DiffParseError,
             ));
         }
@@ -693,7 +683,7 @@ pub struct TargetFile {
 impl TargetFile {
     /// Returns the path to the target file as &str.
     pub fn path_str(&self) -> &str {
-        self.path.as_ref()
+        &self.path
     }
 
     /// Returns the path to the target file as owned PathBuf.
@@ -703,7 +693,7 @@ impl TargetFile {
 
     /// Returns the text of the timestamp of the time when this file was diffed.
     pub fn timestamp(&self) -> &str {
-        self.timestamp.as_ref()
+        &self.timestamp
     }
 }
 
@@ -713,7 +703,7 @@ impl TryFrom<String> for TargetFile {
     fn try_from(line: String) -> Result<Self, Self::Error> {
         if !line.starts_with("+++ ") {
             return Err(Error::new(
-                "invalid format: does not start with '--- '",
+                "invalid format: line does not start with '+++ '",
                 ErrorKind::DiffParseError,
             ));
         }
@@ -755,11 +745,14 @@ fn split_file_metainfo(input: String) -> Result<(String, String), Error> {
 mod tests {
     use crate::{
         diffs::{LineType, TargetFile},
-        FileDiff, Hunk,
+        ErrorKind, FileDiff, Hunk, VersionDiff,
     };
 
-    use super::LineLocation::{ChangeLocation, RealLocation};
     use super::{HunkLine, SourceFile};
+    use super::{
+        HunkLocation,
+        LineLocation::{ChangeLocation, RealLocation},
+    };
 
     fn check_line_parsing(line: &str, expected_type: LineType) {
         let line_type = LineType::determine_type(line).unwrap();
@@ -1089,5 +1082,78 @@ mod tests {
             assert_eq!(line.source_line, old_id);
             assert_eq!(line.target_line, new_id);
         }
+    }
+
+    #[test]
+    fn correctly_parse_version_diff() {
+        let content = "
+diff -Naur version-A/A.txt version-B/A.txt
+--- version-A/A.txt	2023-11-03 16:26:28.701847364 +0100
++++ version-B/A.txt	2023-11-03 16:26:37.168563729 +0100
+@@ -1,7 +1,7 @@
+ context 1
+ context 2
+ context 3
+-REMOVED
++ADDED
+ context 4
+ context 5
+ context 6
+diff -Naur version-A/B.txt version-B/B.txt
+--- version-A/B.txt	2023-11-03 16:26:28.701847364 +0100
++++ version-B/B.txt	2023-11-03 16:26:37.168563729 +0100
+@@ -1,7 +1,7 @@
+ context 1
+ context 2
+ context 3
+-REMOVED
++ADDED
+ context 4
+ context 5
+ context 6";
+        let version_diff = VersionDiff::try_from(content.trim_start().to_string()).unwrap();
+        assert!(!version_diff.is_empty());
+        assert_eq!(2, version_diff.len());
+    }
+
+    #[test]
+    fn empty_diff() {
+        let content = "";
+        let result = VersionDiff::try_from(content.trim_start().to_string());
+        let result = result.unwrap_err();
+        assert_eq!(ErrorKind::DiffParseError, *result.kind());
+        assert!(result.message().starts_with("the given diff is empty"));
+    }
+
+    #[test]
+    fn invalid_file_diff_start() {
+        let content = "
+di -Naur version-A/B.txt version-B/B.txt
+--- version-A/B.txt	2023-11-03 16:26:28.701847364 +0100
++++ version-B/B.txt	2023-11-03 16:26:37.168563729 +0100
+@@ -1,7 +1,7 @@
+ context 1
+ context 2
+ context 3
+-REMOVED
++ADDED
+ context 4
+ context 5
+ context 6";
+        let mut content = prepare_diff_vec(content);
+        content[0] = content[0].trim().to_string();
+        let result = FileDiff::try_from(content.clone());
+
+        let result = result.unwrap_err();
+        assert_eq!(ErrorKind::DiffParseError, *result.kind());
+        assert!(result.message().starts_with("invalid file diff start"));
+    }
+
+    #[test]
+    fn invalid_empty_hunk_location() {
+        let content = "";
+        let result = HunkLocation::try_from(content).unwrap_err();
+        assert_eq!(ErrorKind::DiffParseError, *result.kind());
+        assert!(result.message().starts_with("invalid hunk location: "));
     }
 }
