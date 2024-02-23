@@ -93,6 +93,7 @@ impl TryFrom<String> for VersionDiff {
         if !file_diff_content.is_empty() {
             file_diffs.push(FileDiff::try_from(file_diff_content)?);
         }
+
         if file_diffs.is_empty() {
             Err(Error::new(
                 "the given diff is empty: {content}",
@@ -157,12 +158,12 @@ impl FileDiff {
 
     /// Returns a reference to the hunks contained in the FileDiff.
     pub fn hunks(&self) -> &[Hunk] {
-        self.hunks.as_ref()
+        &self.hunks
     }
 
     /// Returns a mutable reference to the hunks contained in the FileDiff.
     pub fn hunks_mut(&mut self) -> &mut [Hunk] {
-        self.hunks.as_mut_slice()
+        &mut self.hunks
     }
 
     /// Collects all changes in this FileDiff and returns an iterator over their references.
@@ -316,6 +317,7 @@ pub struct Hunk {
 impl Hunk {
     /// Parses the location line of the hunk into two HunkLocation instances, one for the source
     /// and one for the target.
+    /// A location type has the form "@@ -SOURCE_START,SOURCE_LENGTH +TARGET_START,TARGET_LENGTH @@"
     ///
     fn parse_location_line(line: &str) -> Result<(HunkLocation, HunkLocation), Error> {
         if !line.starts_with("@@ ") || !line.ends_with(" @@") {
@@ -481,11 +483,10 @@ impl TryFrom<&str> for HunkLocation {
             }
         }
 
-        // TODO: verify that handling the location specifiers like this is correct
         if numbers.len() == 1 {
             // Sometimes, the location is only given by the location, but not with a length (i.e.,
             // if there is only one line.
-            numbers.push(numbers[0]);
+            numbers.push(1);
         }
 
         Ok(HunkLocation {
