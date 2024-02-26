@@ -193,6 +193,9 @@ impl AlignedPatch {
     ///
     /// If dryrun is set to true, the changes are not saved to the file. This is useful when
     /// looking for rejects without wanting to modify the target file.
+    ///
+    /// ## Error
+    /// Returns an Error if the necessary file operations cannot be performed.
     pub fn apply(mut self, dryrun: bool) -> Result<PatchOutcome, Error> {
         // Check file existance; it must not exist when it is to be created and it must exist
         // when it is to be modified or removed
@@ -356,6 +359,14 @@ impl Display for AlignedPatch {
     }
 }
 
+/// A patch outcome contains all information about a performed patch application. It contains the
+/// patched file artifact, which has already been written to disk if dryrun is disabled.
+/// Furthermore, it contains a vector of all rejected changes and the change type of the applied
+/// patch.
+///
+/// The outcomes for a dryrun of a patch and its real application are the same.  
+/// TODO: Should the outcome really still contain the FileArtifact? This might suggest that it
+/// should still be saved or edited.
 pub struct PatchOutcome {
     patched_file: FileArtifact,
     rejected_changes: Vec<Change>,
@@ -363,19 +374,27 @@ pub struct PatchOutcome {
 }
 
 impl PatchOutcome {
+    /// Returns a reference to the patched file artifact.
     pub fn patched_file(&self) -> &FileArtifact {
         &self.patched_file
     }
 
+    /// Returns a reference to the rejected changes.
     pub fn rejected_changes(&self) -> &[Change] {
         &self.rejected_changes
     }
 
+    /// Returns the change type of the applied patch.
     pub fn change_type(&self) -> FileChangeType {
         self.change_type
     }
 }
 
+/// A change represent a single line change (i.e., adding or removing a line of text).
+/// Each change has a content, a change type, a line number, and a change id.
+///
+/// The change id is used to identify a change among all changes of a patch which was originally
+/// created from a diff. Here, the changes in a diff are given ids from 0 to n-1.
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Change {
     line: String,
@@ -385,18 +404,22 @@ pub struct Change {
 }
 
 impl Change {
+    /// Returns a reference to the content of this change.
     pub fn line(&self) -> &str {
         &self.line
     }
 
+    /// Returns the change type.
     pub fn change_type(&self) -> LineChangeType {
         self.change_type
     }
 
+    /// Returns the line number to which this change should be applied.
     pub fn line_number(&self) -> usize {
         self.line_number
     }
 
+    /// Returns the id of the change with respect to the diff from which it was extracted.
     pub fn change_id(&self) -> usize {
         self.change_id
     }
@@ -434,6 +457,7 @@ impl Display for Change {
     }
 }
 
+/// Enum representing the two possible change types for a line: Add and Remove.
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum LineChangeType {
     Add,
@@ -461,6 +485,7 @@ impl Ord for LineChangeType {
     }
 }
 
+/// Enum representing the three possible change types for a file: Create, Remove, and Modify.
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum FileChangeType {
     Create,
