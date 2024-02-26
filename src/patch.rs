@@ -154,6 +154,11 @@ impl From<FileDiff> for FilePatch {
     }
 }
 
+/// An aligned patch contains a vector of changes that were aligned for a specific target file.
+/// The patch holds ownership of the target FileArtifact and changes it during patch application.
+/// Applying the patch consumes it to prohibit mutliple applications of the same patch to the same
+/// file. An aligned patch also has a change type that describes whether the file is created,
+/// removed, or modified.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AlignedPatch {
     changes: Vec<Change>,
@@ -163,14 +168,31 @@ pub struct AlignedPatch {
 }
 
 impl AlignedPatch {
+    /// Returns a reference to the aligned changes of this patch.
     pub fn changes(&self) -> &[Change] {
         self.changes.as_ref()
     }
 
+    /// Returns a reference to the target file artifact of this patch.
     pub fn target(&self) -> &FileArtifact {
         &self.target
     }
 
+    /// Consumes and applies this patch to the target file artifact.
+    /// This function differentiates between the three different FileChangeTypes: Create, Remove,
+    /// and Modify.
+    ///
+    /// In case of Create, a new file is created and the entire content of the patch
+    /// added to it. The patch fails if the file already exists.
+    ///
+    /// In case of Remove, the file and its entire content is removed, even if the file has more content
+    /// than specified in the patch. The patch is rejected if the file does not exist.
+    ///
+    /// In case of Modify, the changes in the patch are applied in order. The patch is rejected if
+    /// the file does not exist.
+    ///
+    /// If dryrun is set to true, the changes are not saved to the file. This is useful when
+    /// looking for rejects without wanting to modify the target file.
     pub fn apply(mut self, dryrun: bool) -> Result<PatchOutcome, Error> {
         // Check file existance; it must not exist when it is to be created and it must exist
         // when it is to be modified or removed
@@ -194,6 +216,7 @@ impl AlignedPatch {
         }
     }
 
+    /// Rejects all changes in this patch.
     fn reject_all(&mut self) {
         let mut rejects = vec![];
         while let Some(change) = self.changes.pop() {
@@ -207,6 +230,7 @@ impl AlignedPatch {
         self.rejected_changes = rejects;
     }
 
+    /// Applies a modification patch.
     fn apply_file_modification(self, dryrun: bool) -> Result<PatchOutcome, Error> {
         let ((path, lines), mut changes) = (
             (self.target.into_path_and_lines()),
@@ -278,6 +302,7 @@ impl AlignedPatch {
         })
     }
 
+    /// Applies the creation of a new file.
     fn apply_file_creation(self, dryrun: bool) -> Result<PatchOutcome, Error> {
         let (path, lines) = (
             self.target.path().to_path_buf(),
@@ -303,6 +328,7 @@ impl AlignedPatch {
         })
     }
 
+    /// Applies the removal of an existing file.
     fn apply_file_removal(self, dryrun: bool) -> Result<PatchOutcome, Error> {
         // there are no lines in the removed file
         let path = self.target.path().to_path_buf();
