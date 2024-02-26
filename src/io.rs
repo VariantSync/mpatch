@@ -8,6 +8,9 @@ use std::{
 use crate::ErrorKind;
 use crate::{patch::Change, Error};
 
+/// Reads the contents of a file as file artifacts or creates an empty FileArtifact instance
+/// if no corresponding file exists. This function does not create new files on disk, only
+/// representations in memory.
 pub fn read_or_create_empty(pathbuf: PathBuf) -> Result<FileArtifact, Error> {
     Ok(if Path::exists(&pathbuf) {
         FileArtifact::read(&pathbuf)?
@@ -16,6 +19,8 @@ pub fn read_or_create_empty(pathbuf: PathBuf) -> Result<FileArtifact, Error> {
     })
 }
 
+/// Prints the given rejects with print!
+/// TODO: Should this be visible to the outside?
 pub fn print_rejects(diff_header: String, rejects: &[Change]) {
     println!("{diff_header}");
     for reject in rejects {
@@ -23,6 +28,8 @@ pub fn print_rejects(diff_header: String, rejects: &[Change]) {
     }
 }
 
+/// Writes the given diff header and the rejects of the diff to the specified file.
+/// TODO: Should this be visible to the outside?
 pub fn write_rejects<P: AsRef<Path>>(
     diff_header: String,
     rejects: &[Change],
@@ -40,6 +47,8 @@ pub fn write_rejects<P: AsRef<Path>>(
     Ok(())
 }
 
+/// Represents a file that can be patched. Each file artifact tracks the path to the file on disk
+/// and the content of the file in lines.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FileArtifact {
     path: PathBuf,
@@ -47,6 +56,7 @@ pub struct FileArtifact {
 }
 
 impl FileArtifact {
+    /// Creates a new empty file artifact with the given path.
     pub fn new(path: PathBuf) -> FileArtifact {
         FileArtifact {
             path,
@@ -54,11 +64,12 @@ impl FileArtifact {
         }
     }
 
+    /// Creates a new file artifact with the given path and lines.
     pub fn from_lines(path: PathBuf, lines: Vec<String>) -> FileArtifact {
         FileArtifact { path, lines }
     }
 
-    /// Read the content of the file under path and create a new FileArtifact from it.
+    /// Reads the content of the file under path and creates a new FileArtifact from it.
     pub fn read<P: AsRef<Path>>(path: P) -> Result<FileArtifact, Error> {
         match fs::read_to_string(&path) {
             Ok(file_content) => Ok(FileArtifact::parse_content(path, file_content)),
@@ -72,7 +83,7 @@ impl FileArtifact {
         }
     }
 
-    /// Write the content of this FileArtifact to the file under the given path. The file is
+    /// Writes the content of this FileArtifact to the file under the given path. The file is
     /// created if it does not exist. This method will overwrite existing files.
     pub fn write_to<P: AsRef<Path>>(&self, path: P) -> Result<(), Error> {
         if let Err(err) = fs::write(&path, self.to_string()) {
@@ -88,22 +99,25 @@ impl FileArtifact {
         }
     }
 
-    /// Write the content of this FileArtifact back to the file from which it was loaded. This is meant
+    /// Writes the content of this FileArtifact back to the file from which it was loaded. This is meant
     /// to be used in cases where the content has been modified.
     pub fn write(&self) -> Result<(), std::io::Error> {
         fs::write(&self.path, self.to_string())
     }
 
+    /// Returns the number of lines in this file artifact.
     pub fn len(&self) -> usize {
         self.lines.len()
     }
 
+    /// Returns true if this file artifact has no lines; otherwise, returns false.
     #[must_use]
     pub fn is_empty(&self) -> bool {
         self.lines.is_empty()
     }
 
-    /// Individual function that can be called in unit tests without requiring a test file
+    /// Constructor function that can be called in unit tests without requiring a test file
+    /// TODO: Move to tests?
     fn parse_content<P: AsRef<Path>>(path: P, file_content: String) -> Self {
         let mut lines = vec![];
         for line in file_content.lines().map(|l| l.to_string()) {
@@ -146,18 +160,26 @@ impl Display for FileArtifact {
     }
 }
 
+/// A helper trait for adding stripping functionality to paths represented by PathBuf.
+/// Stripping a path means that the first n parts of the path are removed.
+/// For instance if the path `mpatch/src/io.rs` is stripped by `2` the result is `io.rs`.
 pub trait StrippedPath {
     fn strip(&mut self, strip: usize);
 
-    fn from_stripped(other: &Path, strip: usize) -> PathBuf;
+    fn strip_and_clone(other: &Path, strip: usize) -> PathBuf;
 }
 
 impl StrippedPath for PathBuf {
+    /// Strips this path by removing the first `strip` parts of it.
+    /// For instance if the path `mpatch/src/io.rs` is stripped by `2` the result is `io.rs`.
     fn strip(&mut self, strip: usize) {
         *self = self.iter().skip(strip).collect();
     }
 
-    fn from_stripped(other: &Path, strip: usize) -> PathBuf {
+    /// Skips the first `strip` parts of the given path and then clones the remaining parts into a
+    /// new PathBuf that is returned.
+    /// For instance if the path `mpatch/src/io.rs` is stripped by `2` the result is `io.rs`.
+    fn strip_and_clone(other: &Path, strip: usize) -> PathBuf {
         other.iter().skip(strip).collect()
     }
 }
@@ -204,9 +226,9 @@ mod tests {
     #[test]
     fn from_stripped() {
         let path = PathBuf::from_str("hello/world").unwrap();
-        let stripped = PathBuf::from_stripped(&path, 1);
+        let stripped = PathBuf::strip_and_clone(&path, 1);
         assert_eq!(stripped.to_str().unwrap(), "world");
-        let stripped = PathBuf::from_stripped(&path, 2);
+        let stripped = PathBuf::strip_and_clone(&path, 2);
         assert_eq!(stripped.to_str().unwrap(), "");
     }
 }

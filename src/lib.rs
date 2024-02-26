@@ -43,13 +43,13 @@ pub fn apply_all(
     for file_diff in diff {
         let diff_header = file_diff.header();
         let mut source_file_path = source_dir_path.clone();
-        source_file_path.push(PathBuf::from_stripped(
+        source_file_path.push(PathBuf::strip_and_clone(
             &file_diff.source_file().path(),
             strip,
         ));
 
         let mut target_file_path = target_dir_path.clone();
-        target_file_path.push(PathBuf::from_stripped(
+        target_file_path.push(PathBuf::strip_and_clone(
             &file_diff.target_file().path(),
             strip,
         ));
