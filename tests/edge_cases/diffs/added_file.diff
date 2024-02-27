@@ -1,0 +1,13 @@
+diff -Naur version-0/added_file.c version-1/added_file.c
+--- version-0/added_file.c	1970-01-01 01:00:00.000000000 +0100
++++ version-1/added_file.c	2024-02-13 10:15:50.093574971 +0100
+@@ -0,0 +1,9 @@
++
++// Function to calculate the factorial of a number
++unsigned long long factorial(int n) {
++  if (n == 0) {
++    return 1; // Base case: factorial of 0 is 1
++  } else {
++    return n * factorial(n - 1); // Recursive case
++  }
++}

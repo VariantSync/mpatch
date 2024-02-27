@@ -1,0 +1,15 @@
+diff -Naur version-0/substractive.c version-1/substractive.c
+--- version-0/substractive.c	2024-02-02 09:44:33.536673092 +0100
++++ version-1/substractive.c	2024-02-02 09:45:34.126673332 +0100
+@@ -6,7 +6,7 @@
+-  unsigned long long result;
+@@ -6,7 +6,7 @@
++  unsigned long long res;
+@@ -12,9 +12,9 @@
+-    result = factorial(number);
+@@ -13,9 +13,9 @@
++    res = factorial(number);
+@@ -14,9 +14,9 @@
+-    printf("Factorial of %d is %llu\n", number, result);
+@@ -15,9 +15,9 @@
++    printf("Factorial of %d is %llu\n", number, res);

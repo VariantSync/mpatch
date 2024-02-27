@@ -1,4 +1,4 @@
-name: Rust
+name: nightly clippy
 
 on:
   push:
@@ -15,6 +15,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    - uses: actions/checkout@v3
+    - uses: actions-rs/toolchain@v1
+      with:
+          toolchain: nightly
+          components: clippy
+          override: true
     - uses: actions/checkout@v3
     - name: Build
       run: cargo build --verbose
