@@ -1,6 +1,6 @@
 use similar::{Change, TextDiff};
 
-use crate::FileArtifact;
+use crate::io::FileArtifact;
 
 /// A trait for defining a common interface for matchers that match lines between two files.
 ///
@@ -337,7 +337,7 @@ impl HasNewline for Change<&str> {
 mod tests {
     use std::{path::PathBuf, str::FromStr};
 
-    use crate::{FileArtifact, LCSMatcher, Matcher};
+    use crate::{io::FileArtifact, LCSMatcher, Matcher};
 
     #[test]
     fn simple_matching() {

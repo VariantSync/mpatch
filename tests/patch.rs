@@ -1,6 +1,7 @@
 use mpatch::{
+    diffs::VersionDiff,
     patch::{AlignedPatch, FilePatch},
-    FileArtifact, LCSMatcher, Matcher, VersionDiff,
+    FileArtifact, LCSMatcher, Matcher,
 };
 
 // TODO: Test multi-alignment

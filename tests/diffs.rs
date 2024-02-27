@@ -1,9 +1,6 @@
 use std::fs;
 
-use mpatch::{
-    diffs::{ChangedLines, LineLocation, LineType},
-    FileDiff, VersionDiff,
-};
+use mpatch::diffs::{ChangedLines, FileDiff, LineLocation, LineType, VersionDiff};
 
 const DIFF_FILE: &str = "tests/diffs/base_patch.diff";
 

@@ -744,8 +744,8 @@ fn split_file_metainfo(input: String) -> Result<(String, String), Error> {
 #[cfg(test)]
 mod tests {
     use crate::{
-        diffs::{LineType, TargetFile},
-        ErrorKind, FileDiff, Hunk, VersionDiff,
+        diffs::{FileDiff, Hunk, LineType, TargetFile, VersionDiff},
+        ErrorKind,
     };
 
     use super::{HunkLine, SourceFile};

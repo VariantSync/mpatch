@@ -7,9 +7,10 @@ use std::{
 };
 
 use crate::{
-    io::{print_rejects, read_or_create_empty, write_rejects, StrippedPath},
+    diffs::{FileDiff, VersionDiff},
+    io::{print_rejects, read_or_create_empty, write_rejects, FileArtifact, StrippedPath},
     matching::Matching,
-    Error, FileArtifact, FileDiff, Matcher, VersionDiff,
+    Error, Matcher,
 };
 
 /// Applies all file patches that are found in the diff file. This function also requires a path to
@@ -620,7 +621,7 @@ impl Display for FileChangeType {
 
 #[cfg(test)]
 mod tests {
-    use crate::VersionDiff;
+    use crate::diffs::VersionDiff;
 
     use super::{Change, FilePatch, LineChangeType};
 

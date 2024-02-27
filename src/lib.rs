@@ -3,12 +3,11 @@
 
 pub mod diffs;
 pub mod error;
-pub mod io;
+mod io;
 pub mod matching;
 pub mod patch;
 
 pub use diffs::FileDiff;
-pub use diffs::Hunk;
 pub use diffs::VersionDiff;
 pub use error::Error;
 pub use error::ErrorKind;
@@ -16,3 +15,6 @@ pub use io::FileArtifact;
 pub use matching::LCSMatcher;
 pub use matching::Matcher;
 pub use patch::apply_all;
+pub use patch::AlignedPatch;
+pub use patch::FilePatch;
+pub use patch::PatchOutcome;
