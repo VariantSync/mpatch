@@ -103,18 +103,22 @@ impl FileArtifact {
         }
     }
 
+    /// Returns a reference to the lines of this file artifact.
     pub fn lines(&self) -> &[String] {
         &self.lines
     }
 
+    /// Consumes this file artifact and returns its lines.
     pub fn into_lines(self) -> Vec<String> {
         self.lines
     }
 
+    /// Destructures this file artifact into its fields.
     pub fn into_path_and_lines(self) -> (PathBuf, Vec<String>) {
         (self.path, self.lines)
     }
 
+    /// Returns a reference to the path of this file artifact.
     pub fn path(&self) -> &Path {
         &self.path
     }
