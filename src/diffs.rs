@@ -1,7 +1,6 @@
 use std::{
     fmt::Display,
     path::{Path, PathBuf},
-    str::FromStr,
     vec::IntoIter,
 };
 
@@ -118,12 +117,14 @@ impl Display for FileDiff {
         write!(
             f,
             "\n--- {}\t{}",
-            self.source_file_header.path, self.source_file_header.timestamp
+            self.source_file_header.path.to_str().unwrap(),
+            self.source_file_header.timestamp
         )?;
         write!(
             f,
             "\n+++ {}\t{}",
-            self.target_file_header.path, self.target_file_header.timestamp
+            self.target_file_header.path.to_str().unwrap(),
+            self.target_file_header.timestamp
         )?;
         for hunk in &self.hunks {
             // no writeln because Hunks have newline characters themselves
@@ -197,9 +198,9 @@ impl FileDiff {
         format!(
             "{}\n--- {}\t{}\n+++ {}\t{}",
             self.diff_command,
-            self.source_file_header.path,
+            self.source_file_header.path.to_str().unwrap(),
             self.source_file_header.timestamp,
-            self.target_file_header.path,
+            self.target_file_header.path.to_str().unwrap(),
             self.target_file_header.timestamp
         )
     }
@@ -242,7 +243,10 @@ impl TryFrom<Vec<String>> for FileDiff {
         let mut lines = lines.into_iter();
 
         // Parse the diff command
-        let diff_command = lines.next().unwrap();
+        let diff_command = lines.next().ok_or(Error::new(
+            "no header line for file diff",
+            ErrorKind::DiffParseError,
+        ))?;
         if !diff_command.starts_with("diff ") {
             return Err(Error::new(
                 &format!("invalid file diff start: {diff_command}"),
@@ -252,12 +256,18 @@ impl TryFrom<Vec<String>> for FileDiff {
         let diff_command = DiffCommand(diff_command);
 
         // Parse the source and target file headers
-        let source_file = SourceFileHeader::try_from(lines.next().unwrap())?;
-        let target_file = TargetFileHeader::try_from(lines.next().unwrap())?;
+        let source_file = SourceFileHeader::try_from(lines.next().ok_or(Error::new(
+            "no header line with information about the source file",
+            ErrorKind::DiffParseError,
+        ))?)?;
+        let target_file = TargetFileHeader::try_from(lines.next().ok_or(Error::new(
+            "no header line with information about the target file",
+            ErrorKind::DiffParseError,
+        ))?)?;
 
         // Parse the hunks
-        let mut hunk_lines = vec![];
         let mut hunks = vec![];
+        let mut hunk_lines = vec![];
         for line in lines {
             if line.starts_with("@@ ") {
                 if !hunk_lines.is_empty() {
@@ -329,7 +339,18 @@ impl Hunk {
             hunk_locations[id] = Some(HunkLocation::try_from(location)?);
         }
 
-        Ok((hunk_locations[0].unwrap(), hunk_locations[1].unwrap()))
+        // lazy error creation in case of an error
+        let error_lazy = || -> Error {
+            Error::new(
+                &format!("the hunk header line '{line}' is incomplete"),
+                ErrorKind::DiffParseError,
+            )
+        };
+
+        Ok((
+            hunk_locations[0].ok_or(error_lazy())?,
+            hunk_locations[1].ok_or(error_lazy())?,
+        ))
     }
 
     /// Returns the source location of this Hunk.
@@ -369,15 +390,27 @@ impl TryFrom<Vec<String>> for Hunk {
         let mut lines = lines.into_iter();
 
         // Parse the source and target location
+        let no_location_error_lazy = || {
+            Error::new(
+                "no location metaline for hunk found",
+                ErrorKind::DiffParseError,
+            )
+        };
+
         let (source_location, target_location) =
-            Hunk::parse_location_line(&lines.next().unwrap()).unwrap();
+            Hunk::parse_location_line(&lines.next().ok_or(no_location_error_lazy())?)?;
 
         // Parse the hunk lines
         let mut hunk_lines = vec![];
+        // Tracks the last processed line number of the source file
         let mut source_id = source_location.hunk_start;
+        // Tracks the last processed line number of the target file
         let mut target_id = target_location.hunk_start;
         for line in lines {
+            // We have to handle the lines based on their line type, because the change type
+            // determines in which versions of the file the line exists.
             let line_type = LineType::determine_type(&line)?;
+
             let source_line;
             let target_line;
             match line_type {
@@ -401,12 +434,12 @@ impl TryFrom<Vec<String>> for Hunk {
                     target_line = LineLocation::ChangeLocation(target_id);
                 }
                 LineType::EOF => {
-                    // EOF describe missing newline characters at the end of the file.
+                    // EOF describe missing newline characters at the end of the file. They exist
+                    // in neither file.
                     source_line = LineLocation::None;
                     target_line = LineLocation::None;
                 }
             }
-            // Set the location of the line
             hunk_lines.push(HunkLine::new(source_line, target_line, line_type, line)?);
         }
         Ok(Hunk {
@@ -452,30 +485,30 @@ impl TryFrom<&str> for HunkLocation {
     type Error = Error;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
-        let error = || {
+        let error_lazy = || {
             Err(Error::new(
                 &format!("invalid hunk location: {value}"),
                 ErrorKind::DiffParseError,
             ))
         };
         if value.is_empty() {
-            return error();
+            return error_lazy();
         }
-        if value.chars().nth(0).unwrap() != '-' && value.chars().nth(0).unwrap() != '+' {
-            return error();
+        if value.chars().nth(0) != Some('-') && value.chars().nth(0) != Some('+') {
+            return error_lazy();
         }
 
         let mut numbers = vec![];
         for number in value[1..].split(',') {
             match number.parse::<usize>() {
                 Ok(number) => numbers.push(number),
-                Err(_) => return error(),
+                Err(_) => return error_lazy(),
             }
         }
 
         if numbers.len() == 1 {
-            // Sometimes, the location is only given by the location, but not with a length (i.e.,
-            // if there is only one line.
+            // Sometimes, the location is only given by the start without a length if there is only one line
+            // Thus, we push a 1 for the length of the Hunk
             numbers.push(1);
         }
 
@@ -572,6 +605,7 @@ impl HunkLine {
 
     /// Returns the content of the hunk line after the meta-symbol that defines the change type.
     pub fn into_original_text(mut self) -> String {
+        // The meta symbol is always the first character at index '0'
         self.line.split_off(1)
     }
 }
@@ -603,21 +637,23 @@ impl LineType {
         if line == "\\ No newline at end of file" {
             return Ok(LineType::EOF);
         }
+
+        let error_lazy = || {
+            Error::new(
+                &format!("invalid hunk line: {line}"),
+                ErrorKind::DiffParseError,
+            )
+        };
+
         if let Some(marker) = line.chars().nth(0) {
             match marker {
                 '+' => Ok(LineType::Add),
                 '-' => Ok(LineType::Remove),
                 ' ' => Ok(LineType::Context),
-                _ => Err(Error::new(
-                    &format!("invalid hunk line: {line}"),
-                    ErrorKind::DiffParseError,
-                )),
+                _ => Err(error_lazy()),
             }
         } else {
-            Err(Error::new(
-                &format!("invalid hunk line: {line}"),
-                ErrorKind::DiffParseError,
-            ))
+            Err(error_lazy())
         }
     }
 }
@@ -626,20 +662,20 @@ impl LineType {
 /// diffing.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SourceFileHeader {
-    path: String,
+    path: PathBuf,
     // TODO: Use actual time value
     timestamp: String,
 }
 
 impl SourceFileHeader {
-    /// Returns the path to the source file as &str.
-    pub fn path_str(&self) -> &str {
+    /// Returns a reference to the path.
+    pub fn path(&self) -> &Path {
         &self.path
     }
 
     /// Returns the path to the source file as owned PathBuf.
-    pub fn path(&self) -> PathBuf {
-        PathBuf::from_str(&self.path).expect("paths must be UTF-8 encoded")
+    pub fn path_cloned(&self) -> PathBuf {
+        self.path.clone()
     }
 
     /// Returns the text of the timestamp of the time when this file was diffed.
@@ -675,20 +711,20 @@ impl TryFrom<&str> for SourceFileHeader {
 /// diffing.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TargetFileHeader {
-    path: String,
+    path: PathBuf,
     // TODO: Use actual time value
     timestamp: String,
 }
 
 impl TargetFileHeader {
-    /// Returns the path to the target file as &str.
-    pub fn path_str(&self) -> &str {
+    /// Returns a reference to the path.
+    pub fn path(&self) -> &Path {
         &self.path
     }
 
-    /// Returns the path to the target file as owned PathBuf.
-    pub fn path(&self) -> PathBuf {
-        PathBuf::from_str(&self.path).expect("paths must be UTF-8 encoded")
+    /// Returns the path to the target file as cloned PathBuf.
+    pub fn path_cloned(&self) -> PathBuf {
+        self.path.clone()
     }
 
     /// Returns the text of the timestamp of the time when this file was diffed.
@@ -722,11 +758,13 @@ impl TryFrom<&str> for TargetFileHeader {
 
 /// Splits the lines specifying the meta-information about the source and target files into file
 /// path and timestamp.
-fn split_file_metainfo(input: String) -> Result<(String, String), Error> {
+///
+/// Returns a tuple of path and timestamp.
+fn split_file_metainfo(input: String) -> Result<(PathBuf, String), Error> {
     let parts: Vec<&str> = input.split_whitespace().collect();
 
     let path_id = 1;
-    let path = parts[path_id].to_string();
+    let path = PathBuf::from(parts[path_id]);
 
     let mut timestamp = String::new();
     let timestamp_start = 2;
@@ -839,7 +877,7 @@ mod tests {
     fn parse_valid_source_file() {
         let line = "--- version-A/double_end.txt	2023-11-03 16:39:35.953263076 +0100";
         let source = SourceFileHeader::try_from(line).unwrap();
-        assert_eq!("version-A/double_end.txt", source.path);
+        assert_eq!("version-A/double_end.txt", source.path.to_str().unwrap());
         assert_eq!("2023-11-03 16:39:35.953263076 +0100", source.timestamp);
     }
 
@@ -847,7 +885,7 @@ mod tests {
     fn parse_valid_target_file() {
         let line = "+++ version-B/double_end.txt	2023-11-03 16:40:12.500153951 +0100";
         let source = TargetFileHeader::try_from(line).unwrap();
-        assert_eq!("version-B/double_end.txt", source.path);
+        assert_eq!("version-B/double_end.txt", source.path.to_str().unwrap());
         assert_eq!("2023-11-03 16:40:12.500153951 +0100", source.timestamp);
     }
 
@@ -1008,11 +1046,11 @@ mod tests {
         let file_diff = FileDiff::try_from(content.clone()).unwrap();
         assert_eq!(file_diff.diff_command.0, content[0]);
         assert_eq!(
-            file_diff.source_file_header.path,
+            file_diff.source_file_header.path.to_str().unwrap(),
             "version-A/long.txt".to_string()
         );
         assert_eq!(
-            file_diff.target_file_header.path,
+            file_diff.target_file_header.path.to_str().unwrap(),
             "version-B/long.txt".to_string()
         );
         assert_eq!(
