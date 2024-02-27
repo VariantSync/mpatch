@@ -14,6 +14,9 @@ use crate::io::FileArtifact;
 /// A naive implementation of a matcher could iterate over the lines in both files, matching lines
 /// if they have the same content.
 /// ```
+/// use std::path::PathBuf;
+/// use std::str::FromStr;
+/// use mpatch::{Matcher, Matching, FileArtifact};
 /// struct NaiveMatcher;
 ///
 /// impl Matcher for NaiveMatcher {
@@ -28,8 +31,8 @@ use crate::io::FileArtifact;
 ///         // without -1 offset.
 ///         // This means that if the first line of both files matches the entries of the vectors look
 ///         // as follows:
-///         // source_to_target[0] == Some(1)
-///         // target_to_source[0] == Some(1)
+///         // source_to_target\[0\] == Some(1)
+///         // target_to_source\[0\] == Some(1)
 ///         //
 ///         // Note that the getter methods of the Matching struct abstract this implementation detail:
 ///         // matching.target_index(1) == Some(1)
@@ -86,36 +89,41 @@ pub trait Matcher {
     /// The following is an example of a naive implementation that matches lines if they have the
     /// same line number and content.
     /// ```
-    ///fn match_files(&mut self, source: FileArtifact, target: FileArtifact) -> Matching {
-    ///    // Initialze the vectors holding the match ids
-    ///    let mut source_to_target = Vec::with_capacity(source.len());
-    ///    let mut target_to_source = Vec::with_capacity(target.len());
+    /// # use std::path::PathBuf;
+    /// # use mpatch::{Matching, Matcher, FileArtifact};
+    /// # struct NaiveMatcher;
+    /// # impl Matcher for NaiveMatcher {
+    /// fn match_files(&mut self, source: FileArtifact, target: FileArtifact) -> Matching {
+    ///     // Initialze the vectors holding the match ids
+    ///     let mut source_to_target = Vec::with_capacity(source.len());
+    ///     let mut target_to_source = Vec::with_capacity(target.len());
     ///
-    ///    // Add an entry for each line in the source and target file. Each line must have an entry in
-    ///    // the vector at position `line_number-1`.
-    ///    // The match for a line is stored as line number of its counterpart in the other file
-    ///    // without -1 offset.
-    ///    // This means that if the first line of both files matches the entries of the vectors look
-    ///    // as follows:
-    ///    // source_to_target[0] == Some(1)
-    ///    // target_to_source[0] == Some(1)
-    ///    //
-    ///    // Note that the getter methods of the Matching struct abstract this implementation detail:
-    ///    // matching.target_index(1) == Some(1)
-    ///    // matching.source_index(1) == Some(1)
-    ///    for (line_number, (source_line, target_line)) in
-    ///        source.lines().iter().zip(target.lines()).enumerate()
-    ///    {
-    ///        if source_line == target_line {
-    ///            source_to_target.push(Some(line_number));
-    ///            target_to_source.push(Some(line_number));
-    ///        } else {
-    ///            source_to_target.push(None);
-    ///            target_to_source.push(None);
-    ///        }
-    ///    }
-    ///    Matching::new(source, target, source_to_target, target_to_source)
-    ///}
+    ///     // Add an entry for each line in the source and target file. Each line must have an entry in
+    ///     // the vector at position `line_number-1`.
+    ///     // The match for a line is stored as line number of its counterpart in the other file
+    ///     // without -1 offset.
+    ///     // This means that if the first line of both files matches the entries of the vectors look
+    ///     // as follows:
+    ///     // source_to_target\[0\] == Some(1)
+    ///     // target_to_source\[0\] == Some(1)
+    ///     //
+    ///     // Note that the getter methods of the Matching struct abstract this implementation detail:
+    ///     // matching.target_index(1) == Some(1)
+    ///     // matching.source_index(1) == Some(1)
+    ///     for (line_number, (source_line, target_line)) in
+    ///         source.lines().iter().zip(target.lines()).enumerate()
+    ///     {
+    ///         if source_line == target_line {
+    ///             source_to_target.push(Some(line_number));
+    ///             target_to_source.push(Some(line_number));
+    ///         } else {
+    ///             source_to_target.push(None);
+    ///             target_to_source.push(None);
+    ///         }
+    ///     }
+    ///     Matching::new(source, target, source_to_target, target_to_source)
+    /// }
+    ///# }
     fn match_files(&mut self, source: FileArtifact, target: FileArtifact) -> Matching;
 }
 
@@ -134,7 +142,7 @@ pub struct Matching {
     target_to_source: Vec<MatchId>,
 }
 
-/// A MatchId is simply and Option<usize> where the usize is a line number in the interval [1,n].
+/// A MatchId is simply an `Option<usize>` where the usize is a line number in the interval \[1,n\].
 pub type MatchId = Option<usize>;
 
 impl Matching {
@@ -142,8 +150,8 @@ impl Matching {
     /// Each line in the source and target must have an entry in the corresponding d vector at position `line_number-1`.
     /// The match for a line is stored as line number of its counterpart in the other file without -1 offset.
     /// This means that if the first line of both files matches, the entries of the vectors look as follows:
-    /// source_to_target[0] == Some(1)
-    /// target_to_source[0] == Some(1)
+    /// source_to_target\[0\] == Some(1)
+    /// target_to_source\[0\] == Some(1)
     ///
     /// Note that the getter methods of the Matching struct abstract this implementation detail:
     /// matching.target_index(1) == Some(1)
