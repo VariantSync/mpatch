@@ -621,7 +621,7 @@ impl Display for FileChangeType {
 
 #[cfg(test)]
 mod tests {
-    use std::path::PathBuf;
+    use std::{cmp::Ordering, path::PathBuf};
 
     use crate::{diffs::VersionDiff, AlignedPatch, FileArtifact};
 
@@ -686,5 +686,118 @@ mod tests {
 
         patch.reject_all();
         assert_eq!(5, patch.rejected_changes.len());
+    }
+
+    #[test]
+    fn add_lines_at_end() {
+        let artifact = FileArtifact::from_lines(
+            PathBuf::from("tests/samples/target_variant/version-0/main.c"),
+            vec!["first line".to_string()],
+        );
+        let changes = vec![
+            Change {
+                line: "second line".to_string(),
+                change_type: LineChangeType::Add,
+                line_number: 2,
+                change_id: 0,
+            },
+            Change {
+                line: "third line".to_string(),
+                change_type: LineChangeType::Add,
+                line_number: 2,
+                change_id: 1,
+            },
+        ];
+
+        let patch = AlignedPatch {
+            changes,
+            rejected_changes: vec![],
+            target: artifact,
+            change_type: super::FileChangeType::Modify,
+        };
+
+        let patch_outcome = patch.apply(true).unwrap();
+        assert!(patch_outcome.rejected_changes().is_empty());
+
+        let patched_file = patch_outcome.patched_file();
+        assert_eq!(3, patched_file.len());
+        assert_eq!("first line", patched_file.lines()[0]);
+        assert_eq!("second line", patched_file.lines()[1]);
+        assert_eq!("third line", patched_file.lines()[2]);
+    }
+
+    #[test]
+    #[should_panic(expected = "there were unprocessed changes")]
+    fn try_to_remove_lines_after_end() {
+        let artifact = FileArtifact::from_lines(
+            PathBuf::from("tests/samples/target_variant/version-0/main.c"),
+            vec!["first line".to_string()],
+        );
+        let changes = vec![Change {
+            line: "second line".to_string(),
+            change_type: LineChangeType::Remove,
+            line_number: 2,
+            change_id: 0,
+        }];
+
+        let patch = AlignedPatch {
+            changes,
+            rejected_changes: vec![],
+            target: artifact,
+            change_type: super::FileChangeType::Modify,
+        };
+
+        patch.apply(true).unwrap();
+    }
+
+    #[test]
+    fn order_changes_by_id_as_last_resort() {
+        let mut changes = [
+            Change {
+                line: "second line".to_string(),
+                change_type: LineChangeType::Add,
+                line_number: 1,
+                change_id: 1,
+            },
+            Change {
+                line: "first line".to_string(),
+                change_type: LineChangeType::Add,
+                line_number: 1,
+                change_id: 0,
+            },
+        ];
+
+        changes.sort();
+
+        assert_eq!(0, changes[0].change_id);
+        assert_eq!(1, changes[1].change_id);
+    }
+
+    #[test]
+    fn line_change_type_ordering() {
+        assert_eq!(
+            Ordering::Less,
+            LineChangeType::Remove
+                .partial_cmp(&LineChangeType::Add)
+                .unwrap()
+        );
+        assert_eq!(
+            Ordering::Equal,
+            LineChangeType::Remove
+                .partial_cmp(&LineChangeType::Remove)
+                .unwrap()
+        );
+        assert_eq!(
+            Ordering::Equal,
+            LineChangeType::Add
+                .partial_cmp(&LineChangeType::Add)
+                .unwrap()
+        );
+        assert_eq!(
+            Ordering::Greater,
+            LineChangeType::Add
+                .partial_cmp(&LineChangeType::Remove)
+                .unwrap()
+        );
     }
 }
