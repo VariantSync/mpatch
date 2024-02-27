@@ -281,49 +281,62 @@ impl Matcher for LCSMatcher {
         let left_text = left.to_string();
         let right_text = right.to_string();
         let text_diff = TextDiff::from_lines(&left_text, &right_text);
+
         let mut left_to_right = Vec::with_capacity(left.len());
         let mut right_to_left = Vec::with_capacity(right.len());
 
+        // We have to track the last change with respect to source and target file, because these
+        // instances later provide us with information about the existance of a newline character
+        // at the end of the file
         let mut last_source_change = None;
         let mut last_target_change = None;
+
+        // Record the matchings identified by the changes in the textual diff
         for c in text_diff.iter_all_changes() {
             if c.old_index().is_some() {
+                // Map old to new
                 assert_eq!(c.old_index().unwrap(), left_to_right.len());
                 left_to_right.push(c.new_index());
                 last_source_change.replace(c);
             }
             if c.new_index().is_some() {
+                // Map new to old
                 assert_eq!(c.new_index().unwrap(), right_to_left.len());
                 right_to_left.push(c.old_index());
                 last_target_change.replace(c);
             }
         }
 
-        // Handle newlines at EOF, by creating an additional matching for the next line
+        // Handle newlines at EOF, by creating an additional matching for the final empty line if
+        // there is a newline at EOF. We have to consider different cases.
         match (last_source_change, last_target_change) {
+            // There is at least one line in source and target file respectively
             (Some(source_change), Some(target_change)) => {
                 if source_change.has_newline() && target_change.has_newline() {
                     // If both have a newline at the end, the additional empty lines are matched
                     left_to_right.push(target_change.new_index().map(|i| i + 1));
                     right_to_left.push(source_change.old_index().map(|i| i + 1));
                 } else if source_change.has_newline() {
-                    // If only the target line has a newline, a match to None is created for it
+                    // If only the source line has a newline, a match to None is created for it
                     left_to_right.push(None);
                 } else if target_change.has_newline() {
                     // If only the target line has a newline, a match to None is created for it
                     right_to_left.push(None);
                 }
             }
+            // Only the source file has at least one line, the target file is empty
             (Some(source_change), None) => {
                 if source_change.has_newline() && source_change.old_index().is_some() {
                     left_to_right.push(None);
                 }
             }
+            // Only the target file has at least one line, the source file is empty
             (None, Some(target_change)) => {
                 if target_change.has_newline() && target_change.new_index().is_some() {
                     right_to_left.push(None);
                 }
             }
+            // Both matched files are empty, there is nothing to match
             (None, None) => { /* do nothing */ }
         }
         Matching::new(left, right, left_to_right, right_to_left)
