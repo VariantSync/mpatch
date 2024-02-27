@@ -230,6 +230,7 @@ impl From<FileDiff> for FilePatch {
 
         // Determine the change type of this patch by looking at the first hunk
         let first_hunk = file_diff.hunks().first().expect("no hunk in diff");
+        // A hunk start of '0' indicates that the file does not exist for source or target
         let file_change_type = if first_hunk.source_location().hunk_start() == 0 {
             FileChangeType::Create
         } else if first_hunk.target_location().hunk_start() == 0 {
@@ -591,6 +592,7 @@ impl PartialOrd for LineChangeType {
 
 impl Ord for LineChangeType {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        // Removes should always be applied before Adds
         match self {
             LineChangeType::Add => match other {
                 LineChangeType::Add => std::cmp::Ordering::Equal,
