@@ -621,7 +621,9 @@ impl Display for FileChangeType {
 
 #[cfg(test)]
 mod tests {
-    use crate::diffs::VersionDiff;
+    use std::path::PathBuf;
+
+    use crate::{diffs::VersionDiff, AlignedPatch, FileArtifact};
 
     use super::{Change, FilePatch, LineChangeType};
 
@@ -663,5 +665,26 @@ mod tests {
         {
             assert_eq!(change, expected_change);
         }
+    }
+
+    #[test]
+    fn reject_all() {
+        let file_diff = VersionDiff::read("tests/diffs/simple.diff").unwrap();
+        let file_diff = file_diff.file_diffs().first().unwrap().clone();
+        let patch = FilePatch::from(file_diff);
+        let mut patch = AlignedPatch {
+            changes: patch.changes,
+            rejected_changes: vec![Change {
+                line: "additional reject".to_string(),
+                change_type: LineChangeType::Add,
+                line_number: 99,
+                change_id: 4,
+            }],
+            target: FileArtifact::new(PathBuf::from("empty")),
+            change_type: super::FileChangeType::Modify,
+        };
+
+        patch.reject_all();
+        assert_eq!(5, patch.rejected_changes.len());
     }
 }
