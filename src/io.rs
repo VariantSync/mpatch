@@ -5,7 +5,6 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::ErrorKind;
 use crate::{patch::Change, Error};
 
 /// Reads the contents of a file as file artifacts or creates an empty FileArtifact instance
@@ -71,32 +70,8 @@ impl FileArtifact {
 
     /// Reads the content of the file under path and creates a new FileArtifact from it.
     pub fn read<P: AsRef<Path>>(path: P) -> Result<FileArtifact, Error> {
-        match fs::read_to_string(&path) {
-            Ok(file_content) => Ok(FileArtifact::parse_content(path, file_content)),
-            Err(err) => Err(Error::new(
-                &format!(
-                    "was not able to load file from {} due to {err}",
-                    path.as_ref().to_string_lossy()
-                ),
-                ErrorKind::IOError,
-            )),
-        }
-    }
-
-    /// Writes the content of this FileArtifact to the file under the given path. The file is
-    /// created if it does not exist. This method will overwrite existing files.
-    pub fn write_to<P: AsRef<Path>>(&self, path: P) -> Result<(), Error> {
-        if let Err(err) = fs::write(&path, self.to_string()) {
-            Err(Error::new(
-                &format!(
-                    "was not able to load file from {} due to {err}",
-                    path.as_ref().to_string_lossy()
-                ),
-                ErrorKind::IOError,
-            ))
-        } else {
-            Ok(())
-        }
+        let content = fs::read_to_string(&path)?;
+        Ok(FileArtifact::parse_content(path, content))
     }
 
     /// Writes the content of this FileArtifact back to the file from which it was loaded. This is meant
@@ -116,8 +91,7 @@ impl FileArtifact {
         self.lines.is_empty()
     }
 
-    /// Constructor function that can be called in unit tests without requiring a test file
-    /// TODO: Move to tests?
+    /// Creates a new file artifact from the given path and content.
     fn parse_content<P: AsRef<Path>>(path: P, file_content: String) -> Self {
         let mut lines = vec![];
         for line in file_content.lines().map(|l| l.to_string()) {
@@ -195,6 +169,8 @@ mod tests {
         let artifact = FileArtifact::parse_content("UNUSED PATH", test_content.clone());
 
         assert_eq!(test_content, artifact.to_string());
+        assert!(!artifact.is_empty());
+        assert_eq!(5, artifact.len());
     }
 
     #[test]
