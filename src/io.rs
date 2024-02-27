@@ -19,7 +19,6 @@ pub fn read_or_create_empty(pathbuf: PathBuf) -> Result<FileArtifact, Error> {
 }
 
 /// Prints the given rejects with print!
-/// TODO: Should this be visible to the outside?
 pub fn print_rejects(diff_header: String, rejects: &[Change]) {
     println!("{diff_header}");
     for reject in rejects {
@@ -28,7 +27,6 @@ pub fn print_rejects(diff_header: String, rejects: &[Change]) {
 }
 
 /// Writes the given diff header and the rejects of the diff to the specified file.
-/// TODO: Should this be visible to the outside?
 pub fn write_rejects<P: AsRef<Path>>(
     diff_header: String,
     rejects: &[Change],
