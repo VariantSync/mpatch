@@ -8,7 +8,7 @@ use std::{
 
 use crate::{
     diffs::{FileDiff, VersionDiff},
-    io::{print_rejects, read_or_create_empty, write_rejects, FileArtifact, StrippedPath},
+    io::{print_rejects, write_rejects, FileArtifact, StrippedPath},
     matching::Matching,
     Error, Matcher,
 };
@@ -74,7 +74,9 @@ pub fn apply_all(
     let mut rejects_file: Option<BufWriter<File>> = None;
 
     for file_diff in diff {
+        // Required for reject printing/writing
         let diff_header = file_diff.header();
+
         let mut source_file_path = source_dir_path.clone();
         source_file_path.push(PathBuf::strip_cloned(
             &file_diff.source_file_header().path_cloned(),
@@ -87,21 +89,22 @@ pub fn apply_all(
             strip,
         ));
 
-        let source = read_or_create_empty(source_file_path)?;
-        let target = read_or_create_empty(target_file_path)?;
+        let source = FileArtifact::read_or_create_empty(source_file_path)?;
+        let target = FileArtifact::read_or_create_empty(target_file_path)?;
 
         let matching = matcher.match_files(source, target);
         let patch = FilePatch::from(file_diff);
         let aligned_patch = patch.align_to_target(matching);
 
         let patch_outcome = aligned_patch.apply(dryrun)?;
+
         let (actual_result, rejects, change_type) = (
             patch_outcome.patched_file(),
             patch_outcome.rejected_changes(),
             patch_outcome.change_type(),
         );
 
-        // print the result of a dryrun
+        // print the result
         println!("--------------------------------------------------------");
         println!("{change_type} {}", actual_result.path().to_string_lossy());
 

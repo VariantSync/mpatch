@@ -7,17 +7,6 @@ use std::{
 
 use crate::{patch::Change, Error};
 
-/// Reads the contents of a file as file artifacts or creates an empty FileArtifact instance
-/// if no corresponding file exists. This function does not create new files on disk, only
-/// representations in memory.
-pub fn read_or_create_empty(pathbuf: PathBuf) -> Result<FileArtifact, Error> {
-    Ok(if Path::exists(&pathbuf) {
-        FileArtifact::read(&pathbuf)?
-    } else {
-        FileArtifact::new(pathbuf)
-    })
-}
-
 /// Prints the given rejects with print!
 pub fn print_rejects(diff_header: String, rejects: &[Change]) {
     println!("{diff_header}");
@@ -68,6 +57,17 @@ impl FileArtifact {
     pub fn read<P: AsRef<Path>>(path: P) -> Result<FileArtifact, Error> {
         let content = fs::read_to_string(&path)?;
         Ok(FileArtifact::parse_content(path, content))
+    }
+
+    /// Reads the contents of a file as file artifact or creates an empty FileArtifact instance
+    /// if no corresponding file exists. This function does not create new files on disk, only
+    /// representations in memory.
+    pub fn read_or_create_empty(pathbuf: PathBuf) -> Result<FileArtifact, Error> {
+        Ok(if Path::exists(&pathbuf) {
+            FileArtifact::read(&pathbuf)?
+        } else {
+            FileArtifact::new(pathbuf)
+        })
     }
 
     /// Writes the content of this FileArtifact back to the file from which it was loaded. This is meant
