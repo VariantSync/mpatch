@@ -164,23 +164,15 @@ impl Display for FileArtifact {
 /// Stripping a path means that the first n parts of the path are removed.
 /// For instance if the path `mpatch/src/io.rs` is stripped by `2` the result is `io.rs`.
 pub trait StrippedPath {
-    fn strip(&mut self, strip: usize);
-
-    fn strip_and_clone(other: &Path, strip: usize) -> PathBuf;
+    /// Skips the first `strip` parts of the path and then clones the remaining parts into a
+    /// new PathBuf that is returned.
+    /// For instance if the path `mpatch/src/io.rs` is stripped by `2` the result is `io.rs`.
+    fn strip_cloned(&self, strip: usize) -> PathBuf;
 }
 
 impl StrippedPath for PathBuf {
-    /// Strips this path by removing the first `strip` parts of it.
-    /// For instance if the path `mpatch/src/io.rs` is stripped by `2` the result is `io.rs`.
-    fn strip(&mut self, strip: usize) {
-        *self = self.iter().skip(strip).collect();
-    }
-
-    /// Skips the first `strip` parts of the given path and then clones the remaining parts into a
-    /// new PathBuf that is returned.
-    /// For instance if the path `mpatch/src/io.rs` is stripped by `2` the result is `io.rs`.
-    fn strip_and_clone(other: &Path, strip: usize) -> PathBuf {
-        other.iter().skip(strip).collect()
+    fn strip_cloned(&self, strip: usize) -> PathBuf {
+        self.iter().skip(strip).collect()
     }
 }
 
@@ -207,28 +199,24 @@ mod tests {
 
     #[test]
     fn path_strip_single() {
-        let mut path = PathBuf::from_str("hello/world").unwrap();
-        path.strip(1);
-        assert_eq!(path.to_str().unwrap(), "world");
-        path.strip(1);
-        assert_eq!(path.to_str().unwrap(), "");
+        let path = PathBuf::from_str("hello/world").unwrap();
+        assert_eq!(path.strip_cloned(1).to_str().unwrap(), "world");
+        assert_eq!(path.strip_cloned(2).to_str().unwrap(), "");
     }
 
     #[test]
     fn path_strip_multiple() {
-        let mut path = PathBuf::from_str("hello/world/you//are/beautiful").unwrap();
-        path.strip(2);
-        assert_eq!(path.to_str().unwrap(), "you/are/beautiful");
-        path.strip(3);
-        assert_eq!(path.to_str().unwrap(), "");
+        let path = PathBuf::from_str("hello/world/you//are/beautiful").unwrap();
+        assert_eq!(path.strip_cloned(2).to_str().unwrap(), "you/are/beautiful");
+        assert_eq!(path.strip_cloned(5).to_str().unwrap(), "");
     }
 
     #[test]
     fn from_stripped() {
         let path = PathBuf::from_str("hello/world").unwrap();
-        let stripped = PathBuf::strip_and_clone(&path, 1);
+        let stripped = PathBuf::strip_cloned(&path, 1);
         assert_eq!(stripped.to_str().unwrap(), "world");
-        let stripped = PathBuf::strip_and_clone(&path, 2);
+        let stripped = PathBuf::strip_cloned(&path, 2);
         assert_eq!(stripped.to_str().unwrap(), "");
     }
 }
