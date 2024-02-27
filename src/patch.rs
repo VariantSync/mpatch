@@ -77,13 +77,13 @@ pub fn apply_all(
         let diff_header = file_diff.header();
         let mut source_file_path = source_dir_path.clone();
         source_file_path.push(PathBuf::strip_cloned(
-            &file_diff.source_file().path(),
+            &file_diff.source_file_header().path(),
             strip,
         ));
 
         let mut target_file_path = target_dir_path.clone();
         target_file_path.push(PathBuf::strip_cloned(
-            &file_diff.target_file().path(),
+            &file_diff.target_file_header().path(),
             strip,
         ));
 

@@ -70,11 +70,11 @@ impl TryFrom<String> for VersionDiff {
     type Error = crate::Error;
 
     fn try_from(content: String) -> Result<Self, Self::Error> {
-        let mut file_diff_content = vec![];
         let mut file_diffs = vec![];
 
+        let mut file_diff_content = vec![];
         for line in content.lines() {
-            // Colltect lines until the next FileDiff header
+            // Collect lines until the next FileDiff header
             if line.starts_with("diff ") {
                 if !file_diff_content.is_empty() {
                     file_diffs.push(FileDiff::try_from(file_diff_content)?);
@@ -107,8 +107,8 @@ impl TryFrom<String> for VersionDiff {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FileDiff {
     diff_command: DiffCommand,
-    source_file: SourceFile,
-    target_file: TargetFile,
+    source_file_header: SourceFileHeader,
+    target_file_header: TargetFileHeader,
     hunks: Vec<Hunk>,
 }
 
@@ -118,12 +118,12 @@ impl Display for FileDiff {
         write!(
             f,
             "\n--- {}\t{}",
-            self.source_file.path, self.source_file.timestamp
+            self.source_file_header.path, self.source_file_header.timestamp
         )?;
         write!(
             f,
             "\n+++ {}\t{}",
-            self.target_file.path, self.target_file.timestamp
+            self.target_file_header.path, self.target_file_header.timestamp
         )?;
         for hunk in &self.hunks {
             // no writeln because Hunks have newline characters themselves
@@ -139,16 +139,16 @@ impl FileDiff {
         &self.diff_command
     }
 
-    /// Returns the source file of the diff operation (i.e., the file assumed to be the older
-    /// version).
-    pub fn source_file(&self) -> &SourceFile {
-        &self.source_file
+    /// Returns the source file header of the diff operation (i.e., the information about
+    /// the file assumed to be the older version).
+    pub fn source_file_header(&self) -> &SourceFileHeader {
+        &self.source_file_header
     }
 
-    /// Returns the target file of the diff operation (i.e., the file assumed to be the newer
-    /// version).
-    pub fn target_file(&self) -> &TargetFile {
-        &self.target_file
+    /// Returns the target file header of the diff operation (i.e., the information file
+    /// assumed to be the newer version).
+    pub fn target_file_header(&self) -> &TargetFileHeader {
+        &self.target_file_header
     }
 
     /// Returns a reference to the hunks contained in the FileDiff.
@@ -197,10 +197,10 @@ impl FileDiff {
         format!(
             "{}\n--- {}\t{}\n+++ {}\t{}",
             self.diff_command,
-            self.source_file.path,
-            self.source_file.timestamp,
-            self.target_file.path,
-            self.target_file.timestamp
+            self.source_file_header.path,
+            self.source_file_header.timestamp,
+            self.target_file_header.path,
+            self.target_file_header.timestamp
         )
     }
 }
@@ -251,9 +251,9 @@ impl TryFrom<Vec<String>> for FileDiff {
         }
         let diff_command = DiffCommand(diff_command);
 
-        // Parse the source and target files
-        let source_file = SourceFile::try_from(lines.next().unwrap())?;
-        let target_file = TargetFile::try_from(lines.next().unwrap())?;
+        // Parse the source and target file headers
+        let source_file = SourceFileHeader::try_from(lines.next().unwrap())?;
+        let target_file = TargetFileHeader::try_from(lines.next().unwrap())?;
 
         // Parse the hunks
         let mut hunk_lines = vec![];
@@ -274,8 +274,8 @@ impl TryFrom<Vec<String>> for FileDiff {
 
         Ok(FileDiff {
             diff_command,
-            source_file,
-            target_file,
+            source_file_header: source_file,
+            target_file_header: target_file,
             hunks,
         })
     }
@@ -622,16 +622,16 @@ impl LineType {
     }
 }
 
-/// A SourceFile holds the path to the source file and the timestamp of when it was read for
+/// A source file header holds the path to the source file and the timestamp of when it was read for
 /// diffing.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct SourceFile {
+pub struct SourceFileHeader {
     path: String,
     // TODO: Use actual time value
     timestamp: String,
 }
 
-impl SourceFile {
+impl SourceFileHeader {
     /// Returns the path to the source file as &str.
     pub fn path_str(&self) -> &str {
         &self.path
@@ -648,7 +648,7 @@ impl SourceFile {
     }
 }
 
-impl TryFrom<String> for SourceFile {
+impl TryFrom<String> for SourceFileHeader {
     type Error = Error;
 
     fn try_from(line: String) -> Result<Self, Self::Error> {
@@ -663,7 +663,7 @@ impl TryFrom<String> for SourceFile {
     }
 }
 
-impl TryFrom<&str> for SourceFile {
+impl TryFrom<&str> for SourceFileHeader {
     type Error = Error;
 
     fn try_from(line: &str) -> Result<Self, Self::Error> {
@@ -671,16 +671,16 @@ impl TryFrom<&str> for SourceFile {
     }
 }
 
-/// A TargetFile holds the path to the target file and the timestamp of when it was read for
+/// A target file header holds the path to the target file and the timestamp of when it was read for
 /// diffing.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct TargetFile {
+pub struct TargetFileHeader {
     path: String,
     // TODO: Use actual time value
     timestamp: String,
 }
 
-impl TargetFile {
+impl TargetFileHeader {
     /// Returns the path to the target file as &str.
     pub fn path_str(&self) -> &str {
         &self.path
@@ -697,7 +697,7 @@ impl TargetFile {
     }
 }
 
-impl TryFrom<String> for TargetFile {
+impl TryFrom<String> for TargetFileHeader {
     type Error = Error;
 
     fn try_from(line: String) -> Result<Self, Self::Error> {
@@ -712,7 +712,7 @@ impl TryFrom<String> for TargetFile {
     }
 }
 
-impl TryFrom<&str> for TargetFile {
+impl TryFrom<&str> for TargetFileHeader {
     type Error = Error;
 
     fn try_from(line: &str) -> Result<Self, Self::Error> {
@@ -744,11 +744,11 @@ fn split_file_metainfo(input: String) -> Result<(String, String), Error> {
 #[cfg(test)]
 mod tests {
     use crate::{
-        diffs::{FileDiff, Hunk, LineType, TargetFile, VersionDiff},
+        diffs::{FileDiff, Hunk, LineType, TargetFileHeader, VersionDiff},
         ErrorKind,
     };
 
-    use super::{HunkLine, SourceFile};
+    use super::{HunkLine, SourceFileHeader};
     use super::{
         HunkLocation,
         LineLocation::{ChangeLocation, RealLocation},
@@ -838,7 +838,7 @@ mod tests {
     #[test]
     fn parse_valid_source_file() {
         let line = "--- version-A/double_end.txt	2023-11-03 16:39:35.953263076 +0100";
-        let source = SourceFile::try_from(line).unwrap();
+        let source = SourceFileHeader::try_from(line).unwrap();
         assert_eq!("version-A/double_end.txt", source.path);
         assert_eq!("2023-11-03 16:39:35.953263076 +0100", source.timestamp);
     }
@@ -846,7 +846,7 @@ mod tests {
     #[test]
     fn parse_valid_target_file() {
         let line = "+++ version-B/double_end.txt	2023-11-03 16:40:12.500153951 +0100";
-        let source = TargetFile::try_from(line).unwrap();
+        let source = TargetFileHeader::try_from(line).unwrap();
         assert_eq!("version-B/double_end.txt", source.path);
         assert_eq!("2023-11-03 16:40:12.500153951 +0100", source.timestamp);
     }
@@ -854,13 +854,13 @@ mod tests {
     #[test]
     fn recognize_invalid_source_file() {
         let line = "+++ version-A/double_end.txt	2023-11-03 16:39:35.953263076 +0100";
-        assert!(SourceFile::try_from(line).is_err());
+        assert!(SourceFileHeader::try_from(line).is_err());
     }
 
     #[test]
     fn recognize_invalid_target_file() {
         let line = "--- version-A/double_end.txt	2023-11-03 16:39:35.953263076 +0100";
-        assert!(TargetFile::try_from(line).is_err());
+        assert!(TargetFileHeader::try_from(line).is_err());
     }
 
     #[test]
@@ -1007,14 +1007,20 @@ mod tests {
         content[0] = content[0].trim().to_string();
         let file_diff = FileDiff::try_from(content.clone()).unwrap();
         assert_eq!(file_diff.diff_command.0, content[0]);
-        assert_eq!(file_diff.source_file.path, "version-A/long.txt".to_string());
-        assert_eq!(file_diff.target_file.path, "version-B/long.txt".to_string());
         assert_eq!(
-            file_diff.source_file.timestamp,
+            file_diff.source_file_header.path,
+            "version-A/long.txt".to_string()
+        );
+        assert_eq!(
+            file_diff.target_file_header.path,
+            "version-B/long.txt".to_string()
+        );
+        assert_eq!(
+            file_diff.source_file_header.timestamp,
             "2023-11-03 16:26:28.701847364 +0100".to_string()
         );
         assert_eq!(
-            file_diff.target_file.timestamp,
+            file_diff.target_file_header.timestamp,
             "2023-11-03 16:26:37.168563729 +0100".to_string()
         );
         assert_eq!(file_diff.hunks.len(), 2);
