@@ -23,10 +23,10 @@ pub fn run_alignment_test(source: &str, target: &str, diff: &str, expected_patch
     }
 }
 
-fn assert_change_equality(c1: &Change, c2: &Change) {
-    assert_eq!(c1.line_number(), c2.line_number());
+pub fn assert_change_equality(c1: &Change, c2: &Change) {
     assert_eq!(c1.change_type(), c2.change_type());
     assert_eq!(c1.line(), c2.line());
+    assert_eq!(c1.line_number(), c2.line_number());
 }
 
 pub fn run_application_test(
