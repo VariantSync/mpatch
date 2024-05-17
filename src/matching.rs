@@ -245,8 +245,12 @@ impl Matching {
 
         // Search for the closest context line above the change; i.e., key and value must both be
         // Some(...)
+        // We have to insert the change after the found target line, if we had to skip at least one
+        // line
+        let mut insert_after = false;
         while line_number > 0 && self.target_index(line_number).flatten().is_none() {
             line_number -= 1;
+            insert_after = true;
         }
 
         if line_number == 0 {
@@ -254,8 +258,12 @@ impl Matching {
             None
         } else {
             let target_line = self.target_index(line_number);
-            // The result must be Some(...) in all cases
-            target_line.unwrap()
+            if insert_after {
+                // The result must be Some(...) in all cases
+                target_line.unwrap().map(|v| v + 1)
+            } else {
+                target_line.unwrap()
+            }
         }
     }
 }
