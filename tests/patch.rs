@@ -1,6 +1,6 @@
 use mpatch::{
     diffs::VersionDiff,
-    patch::{AlignedPatch, Change, FilePatch},
+    patch::{align::align_to_target, AlignedPatch, Change, FilePatch},
     FileArtifact, LCSMatcher, Matcher,
 };
 
@@ -150,7 +150,7 @@ pub fn get_aligned_patch(source: &str, target: &str, diff: &str) -> AlignedPatch
     let matching = matcher.match_files(source, target);
 
     let patch = read_patch(diff);
-    patch.align_to_target(matching)
+    align_to_target(patch, matching)
 }
 
 pub fn run_alignment_test(source: &str, target: &str, diff: &str, expected_patch: &str) {
@@ -162,7 +162,7 @@ pub fn run_alignment_test(source: &str, target: &str, diff: &str, expected_patch
 
     let patch = read_patch(diff);
     let expected_patch = read_patch(expected_patch);
-    let aligned_patch = patch.align_to_target(matching);
+    let aligned_patch = align_to_target(patch, matching);
 
     for (expected, aligned) in expected_patch
         .changes()
