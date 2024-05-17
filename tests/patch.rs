@@ -1,6 +1,8 @@
 use mpatch::{
     diffs::VersionDiff,
-    patch::{align::align_to_target, AlignedPatch, Change, FilePatch},
+    patch::{
+        alignment::align_to_target, application::apply_patch, AlignedPatch, Change, FilePatch,
+    },
     FileArtifact, LCSMatcher, Matcher,
 };
 
@@ -186,7 +188,7 @@ pub fn run_application_test(
 ) {
     let expected_result = FileArtifact::read(expected_result).unwrap();
 
-    let actual_result = aligned_patch.apply(true).unwrap();
+    let actual_result = apply_patch(aligned_patch, true).unwrap();
     let (actual_result, rejects) = (
         actual_result.patched_file(),
         actual_result.rejected_changes(),
