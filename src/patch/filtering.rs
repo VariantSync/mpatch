@@ -37,3 +37,12 @@ impl Filter for DistanceFilter {
         }
     }
 }
+
+#[derive(Debug)]
+pub struct KeepAllFilter;
+
+impl Filter for KeepAllFilter {
+    fn apply_filter(&mut self, patch: FilePatch, _: &Matching) -> FilePatch {
+        patch
+    }
+}
