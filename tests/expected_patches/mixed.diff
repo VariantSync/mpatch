@@ -3,13 +3,13 @@ diff -Naur version-0/mixed.c version-1/mixed.c
 +++ version-1/mixed.c	2024-02-02 10:09:01.673345561 +0100
 @@ -5,7 +5,7 @@
 -  unsigned long long result;
-@@ -5,7 +5,7 @@
+@@ -6,7 +6,7 @@
 +  unsigned long long res;
 @@ -20,9 +20,9 @@
 -    result = factorial(number);
-@@ -20,9 +20,9 @@
-+    res = factorial(number);
 @@ -21,9 +21,9 @@
 -    printf("Factorial of %d is %llu\n", number, result);
+@@ -21,9 +21,9 @@
++    res = factorial(number);
 @@ -22,9 +22,9 @@
 +    printf("Factorial of %d is %llu\n", number, res);

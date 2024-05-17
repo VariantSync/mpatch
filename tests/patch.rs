@@ -1,6 +1,6 @@
 use mpatch::{
     diffs::VersionDiff,
-    patch::{AlignedPatch, FilePatch},
+    patch::{AlignedPatch, Change, FilePatch},
     FileArtifact, LCSMatcher, Matcher,
 };
 
@@ -42,6 +42,12 @@ const NON_EXISTANT_DIFF: &str = "tests/diffs/remove_non_existant.diff";
 const EXPECTED_NON_EXISTANT_PATCH: &str = "tests/expected_patches/remove_non_existant.diff";
 const EXPECTED_NON_EXISTANT_RESULT: &str =
     "tests/samples/target_variant/version-1/remove_non_existant.c";
+
+const APPENDING_SOURCE: &str = "tests/samples/source_variant/version-0/appending.c";
+const APPENDING_TARGET: &str = "tests/samples/target_variant/version-0/appending.c";
+const APPENDING_DIFF: &str = "tests/diffs/appending.diff";
+const EXPECTED_APPENDING_PATCH: &str = "tests/expected_patches/appending.diff";
+const EXPECTED_APPENDING_RESULT: &str = "tests/samples/target_variant/version-1/appending.c";
 
 #[test]
 fn invariant_alignment() {
@@ -89,6 +95,16 @@ fn mixed_alignment() {
 }
 
 #[test]
+fn appending_alignment() {
+    run_alignment_test(
+        APPENDING_SOURCE,
+        APPENDING_TARGET,
+        APPENDING_DIFF,
+        EXPECTED_APPENDING_PATCH,
+    );
+}
+
+#[test]
 fn apply_invariant() {
     let aligned_patch = get_aligned_patch(INVARIANT_SOURCE, INVARIANT_TARGET, INVARIANT_DIFF);
     run_application_test(aligned_patch, EXPECTED_INVARIANT_RESULT, 0);
@@ -120,6 +136,12 @@ fn apply_non_existant() {
     run_application_test(aligned_patch, EXPECTED_NON_EXISTANT_RESULT, 1);
 }
 
+#[test]
+fn apply_appending() {
+    let aligned_patch = get_aligned_patch(APPENDING_SOURCE, APPENDING_TARGET, APPENDING_DIFF);
+    run_application_test(aligned_patch, EXPECTED_APPENDING_RESULT, 0);
+}
+
 pub fn get_aligned_patch(source: &str, target: &str, diff: &str) -> AlignedPatch {
     let source = FileArtifact::read(source).unwrap();
     let target = FileArtifact::read(target).unwrap();
@@ -147,8 +169,14 @@ pub fn run_alignment_test(source: &str, target: &str, diff: &str, expected_patch
         .iter()
         .zip(aligned_patch.changes().iter())
     {
-        assert_eq!(expected, aligned);
+        assert_change_equality(expected, aligned);
     }
+}
+
+fn assert_change_equality(c1: &Change, c2: &Change) {
+    assert_eq!(c1.line_number(), c2.line_number());
+    assert_eq!(c1.change_type(), c2.change_type());
+    assert_eq!(c1.line(), c2.line());
 }
 
 pub fn run_application_test(
