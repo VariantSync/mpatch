@@ -4,7 +4,7 @@ use crate::{AlignedPatch, Error, FileArtifact, PatchOutcome};
 
 use super::{FileChangeType, LineChangeType};
 
-/// Consumes and applies this patch to the target file artifact.
+/// Consumes and applies the patch to the target file artifact.
 /// This function differentiates between the three different FileChangeTypes: Create, Remove,
 /// and Modify.
 ///
@@ -45,7 +45,7 @@ pub fn apply_patch(mut patch: AlignedPatch, dryrun: bool) -> Result<PatchOutcome
     }
 }
 
-/// Rejects all changes in this patch.
+/// Rejects all changes in the patch.
 fn reject_all(patch: &mut AlignedPatch) {
     let mut rejects = vec![];
     while let Some(change) = patch.changes.pop() {

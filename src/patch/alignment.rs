@@ -2,10 +2,10 @@ use crate::{AlignedPatch, FilePatch, Matching};
 
 use super::{FileChangeType, LineChangeType};
 
-/// Consumes and aligns this patch to a specific target file based on a matching.
+/// Consumes and aligns the patch to a specific target file based on a matching.
 /// The source file in the matching must also be the source file of the FileDiff from which
-/// this FilePatch has been created. This means that it is the version of the source file
-/// before the changes in this patch have been applied to it.
+/// the FilePatch has been created. This means that it is the version of the source file
+/// before the changes in the patch have been applied to it.
 /// The target file is automatically read from the given matching.
 ///
 /// ## Returns
@@ -69,8 +69,8 @@ pub fn align_to_target(patch: FilePatch, target_matching: Matching) -> AlignedPa
 /// Clones the patch for each given matching and aligns it to the corresponding target of each
 /// matching.
 /// The source file in each matching must also be the source file of the FileDiff from which
-/// this FilePatch has been created. This means that it is the version of the source file
-/// before the changes in this patch have been applied to it.
+/// the FilePatch has been created. This means that it is the version of the source file
+/// before the changes in the patch have been applied to it.
 /// The target file is automatically read from the given matching.
 ///
 /// ## Returns
