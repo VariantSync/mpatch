@@ -45,8 +45,18 @@ pub mod diffs;
 /// Module for error types.
 pub mod error;
 mod io;
-/// Module for types that implement matching two files.
-pub mod matching;
+/// Module for aligning patches
+#[doc(inline)]
+pub use patch::alignment;
+/// Module for applying patches
+#[doc(inline)]
+pub use patch::application;
+/// Module for filtering patches
+#[doc(inline)]
+pub use patch::filtering;
+/// Module for matching two files.
+#[doc(inline)]
+pub use patch::matching;
 /// Module for types and functions that represent patches and patch application.
 pub mod patch;
 

@@ -1,5 +1,7 @@
 pub mod alignment;
 pub mod application;
+pub mod filtering;
+pub mod matching;
 
 use std::{fmt::Display, fs::File, io::BufWriter, path::PathBuf, vec};
 
