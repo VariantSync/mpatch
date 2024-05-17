@@ -12,6 +12,8 @@ use crate::{
     Error, Matcher,
 };
 
+use self::filtering::Filter;
+
 /// Applies all file patches that are found in the diff file. This function also requires a path to
 /// the directories of the source and target variants for the patch application, because it tries
 /// to match the artifacts of the source variant with the artifacts of the target variant. The
@@ -59,15 +61,13 @@ use crate::{
 // TODO: It would be great to track differences during file removal as rejects
 // TODO: Improve interface of this function (e.g., make it smaller or at least more versatile)
 pub fn apply_all(
-    source_dir_path: PathBuf,
-    target_dir_path: PathBuf,
-    patch_file_path: PathBuf,
-    rejects_file_path: Option<PathBuf>,
+    patch_paths: PatchPaths,
     strip: usize,
     dryrun: bool,
     mut matcher: impl Matcher,
+    mut filter: impl Filter,
 ) -> Result<(), Error> {
-    let diff = VersionDiff::read(patch_file_path)?;
+    let diff = VersionDiff::read(patch_paths.patch_file_path)?;
 
     // We only create a rejects file if there are rejects
     let mut rejects_file: Option<BufWriter<File>> = None;
@@ -76,13 +76,13 @@ pub fn apply_all(
         // Required for reject printing/writing
         let diff_header = file_diff.header();
 
-        let mut source_file_path = source_dir_path.clone();
+        let mut source_file_path = patch_paths.source_dir_path.clone();
         source_file_path.push(PathBuf::strip_cloned(
             &file_diff.source_file_header().path_cloned(),
             strip,
         ));
 
-        let mut target_file_path = target_dir_path.clone();
+        let mut target_file_path = patch_paths.target_dir_path.clone();
         target_file_path.push(PathBuf::strip_cloned(
             &file_diff.target_file_header().path_cloned(),
             strip,
@@ -93,7 +93,8 @@ pub fn apply_all(
 
         let matching = matcher.match_files(source, target);
         let patch = FilePatch::from(file_diff);
-        let aligned_patch = align_to_target(patch, matching);
+        let filtered_patch = filter.apply_filter(patch, &matching);
+        let aligned_patch = align_to_target(filtered_patch, matching);
 
         let patch_outcome = apply_patch(aligned_patch, dryrun)?;
 
@@ -108,7 +109,7 @@ pub fn apply_all(
         println!("{change_type} {}", actual_result.path().to_string_lossy());
 
         if !rejects.is_empty() {
-            match &rejects_file_path {
+            match &patch_paths.rejects_file_path {
                 Some(path) => write_rejects(diff_header, rejects, &mut rejects_file, path)?,
                 None => {
                     print_rejects(diff_header, rejects);
@@ -118,6 +119,29 @@ pub fn apply_all(
     }
 
     Ok(())
+}
+
+pub struct PatchPaths {
+    source_dir_path: PathBuf,
+    target_dir_path: PathBuf,
+    patch_file_path: PathBuf,
+    rejects_file_path: Option<PathBuf>,
+}
+
+impl PatchPaths {
+    pub fn new(
+        source_dir_path: PathBuf,
+        target_dir_path: PathBuf,
+        patch_file_path: PathBuf,
+        rejects_file_path: Option<PathBuf>,
+    ) -> PatchPaths {
+        PatchPaths {
+            source_dir_path,
+            target_dir_path,
+            patch_file_path,
+            rejects_file_path,
+        }
+    }
 }
 
 /// A file patch contains a vector of changes for a specific file from a FileDiff.

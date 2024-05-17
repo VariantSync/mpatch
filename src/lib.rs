@@ -14,22 +14,25 @@
 //! ```
 //! use std::path::PathBuf;
 //! use std::str::FromStr;
-//! let source_dir = PathBuf::from("tests/samples/source_variant/version-0");
-//! let target_dir = PathBuf::from("tests/samples/target_variant/version-0");
-//! let patch_file = PathBuf::from("tests/samples/patch.diff");
-//! let rejects_file = None;
+//! use mpatch::KeepAllFilter;
+//! use mpatch::PatchPaths;
+//!
 //! let strip = 1;
 //! let dryrun = true;
 //! let matcher = mpatch::LCSMatcher;
+//! let patch_paths = PatchPaths::new(
+//!     PathBuf::from("tests/samples/source_variant/version-0"),
+//!     PathBuf::from("tests/samples/target_variant/version-0"),
+//!     PathBuf::from("tests/samples/patch.diff"),
+//!     None,
+//! );
 //!
 //! if let Err(error) = mpatch::apply_all(
-//!     source_dir,
-//!     target_dir,
-//!     patch_file,
-//!     rejects_file,
+//!     patch_paths,
 //!     strip,
 //!     dryrun,
 //!     matcher,
+//!     KeepAllFilter,
 //! ) {
 //!     eprintln!("{}", error);
 //! }
@@ -79,8 +82,16 @@ pub use matching::Matching;
 #[doc(inline)]
 pub use patch::apply_all;
 #[doc(inline)]
+pub use patch::filtering::DistanceFilter;
+#[doc(inline)]
+pub use patch::filtering::Filter;
+#[doc(inline)]
+pub use patch::filtering::KeepAllFilter;
+#[doc(inline)]
 pub use patch::AlignedPatch;
 #[doc(inline)]
 pub use patch::FilePatch;
 #[doc(inline)]
 pub use patch::PatchOutcome;
+#[doc(inline)]
+pub use patch::PatchPaths;
