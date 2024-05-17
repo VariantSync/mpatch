@@ -1,4 +1,4 @@
-mod test_utils;
+pub mod test_utils;
 
 use mpatch::{
     patch::{alignment::align_to_target, AlignedPatch},

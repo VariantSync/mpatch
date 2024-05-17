@@ -1,4 +1,4 @@
-mod test_utils;
+pub mod test_utils;
 use mpatch::{
     filtering::{DistanceFilter, Filter},
     FileArtifact, LCSMatcher, Matcher,
