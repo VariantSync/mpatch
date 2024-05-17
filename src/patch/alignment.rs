@@ -35,6 +35,7 @@ pub fn align_to_target(patch: FilePatch, target_matching: Matching) -> AlignedPa
         let target_line_number = match change.change_type {
             LineChangeType::Add => target_matching
                 .target_index_fuzzy(change.line_number)
+                .0
                 // Adds without a match are mapped to line 0 (i.e., prepend line)
                 .or(Some(0)),
             LineChangeType::Remove => {
