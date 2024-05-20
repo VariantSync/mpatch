@@ -1,5 +1,5 @@
 use mpatch::{
-    alignment::align_to_target, application::apply_patch, patch::Change, AlignedPatch,
+    alignment::align_patch_to_target, application::apply_patch, patch::Change, AlignedPatch,
     FileArtifact, FilePatch, LCSMatcher, Matcher, VersionDiff,
 };
 
@@ -12,7 +12,7 @@ pub fn run_alignment_test(source: &str, target: &str, diff: &str, expected_patch
 
     let patch = read_patch(diff);
     let expected_patch = read_patch(expected_patch);
-    let aligned_patch = align_to_target(patch, matching);
+    let aligned_patch = align_patch_to_target(patch, matching);
 
     for (expected, aligned) in expected_patch
         .changes()

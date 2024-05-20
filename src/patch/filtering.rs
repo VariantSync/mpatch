@@ -1,9 +1,9 @@
 use crate::{FilePatch, Matching};
 
-use super::{Change, LineChangeType};
+use super::{Change, FilteredPatch, LineChangeType};
 
 pub trait Filter {
-    fn apply_filter(&mut self, patch: FilePatch, matching: &Matching) -> FilePatch;
+    fn apply_filter(&mut self, patch: FilePatch, matching: &Matching) -> FilteredPatch;
 }
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -26,14 +26,21 @@ impl DistanceFilter {
 }
 
 impl Filter for DistanceFilter {
-    fn apply_filter(&mut self, patch: FilePatch, matching: &Matching) -> FilePatch {
-        FilePatch {
+    fn apply_filter(&mut self, patch: FilePatch, matching: &Matching) -> FilteredPatch {
+        let mut changes = vec![];
+        let mut rejected_changes = vec![];
+
+        patch.changes.into_iter().for_each(|c| {
+            if self.keep_change(&c, matching) {
+                changes.push(c);
+            } else {
+                rejected_changes.push(c);
+            };
+        });
+        FilteredPatch {
             change_type: patch.change_type,
-            changes: patch
-                .changes
-                .into_iter()
-                .filter(|c| self.keep_change(c, matching))
-                .collect(),
+            changes,
+            rejected_changes,
         }
     }
 }
@@ -42,7 +49,11 @@ impl Filter for DistanceFilter {
 pub struct KeepAllFilter;
 
 impl Filter for KeepAllFilter {
-    fn apply_filter(&mut self, patch: FilePatch, _: &Matching) -> FilePatch {
-        patch
+    fn apply_filter(&mut self, patch: FilePatch, _: &Matching) -> FilteredPatch {
+        FilteredPatch {
+            changes: patch.changes,
+            change_type: patch.change_type,
+            rejected_changes: vec![],
+        }
     }
 }

@@ -1,6 +1,6 @@
 use crate::{AlignedPatch, FilePatch, Matching};
 
-use super::{FileChangeType, LineChangeType};
+use super::{FileChangeType, FilteredPatch, LineChangeType};
 
 /// Consumes and aligns the patch to a specific target file based on a matching.
 /// The source file in the matching must also be the source file of the FileDiff from which
@@ -16,12 +16,15 @@ use super::{FileChangeType, LineChangeType};
 /// Changes adding a line are mapped to the closest matching location in the target file, which
 /// is determined by considering the matches of the lines in the source file that come before
 /// the added line.
-pub fn align_to_target(patch: FilePatch, target_matching: Matching) -> AlignedPatch {
+pub fn align_filtered_patch_to_target(
+    patch: FilteredPatch,
+    target_matching: Matching,
+) -> AlignedPatch {
     if patch.change_type == FileChangeType::Create {
         // Files that are to be created are aligned by definition
         return AlignedPatch {
             changes: patch.changes,
-            rejected_changes: vec![],
+            rejected_changes: patch.rejected_changes,
             target: target_matching.into_target(),
             change_type: patch.change_type,
         };
@@ -29,7 +32,7 @@ pub fn align_to_target(patch: FilePatch, target_matching: Matching) -> AlignedPa
 
     // Align all changes
     let mut changes = Vec::with_capacity(patch.changes.len());
-    let mut rejected_changes = vec![];
+    let mut rejected_changes = patch.rejected_changes;
     for mut change in patch.changes {
         // Determine the best target line for each change
         let target_line_number = match change.change_type {
@@ -67,6 +70,31 @@ pub fn align_to_target(patch: FilePatch, target_matching: Matching) -> AlignedPa
     }
 }
 
+/// Consumes and aligns the patch to a specific target file based on a matching.
+/// The source file in the matching must also be the source file of the FileDiff from which
+/// the FilePatch has been created. This means that it is the version of the source file
+/// before the changes in the patch have been applied to it.
+/// The target file is automatically read from the given matching.
+///
+/// ## Returns
+/// Returns an aligned patch. In an aligned patch, all changes have been mapped to the best
+/// possible location in the target file. Changes removing a line are mapped to the exact line
+/// that has been removed from the source file. If no such line is found, the change is
+/// rejected and stored as a reject of the aligned patch.
+/// Changes adding a line are mapped to the closest matching location in the target file, which
+/// is determined by considering the matches of the lines in the source file that come before
+/// the added line.
+pub fn align_patch_to_target(patch: FilePatch, target_matching: Matching) -> AlignedPatch {
+    align_filtered_patch_to_target(
+        FilteredPatch {
+            changes: patch.changes,
+            change_type: patch.change_type,
+            rejected_changes: vec![],
+        },
+        target_matching,
+    )
+}
+
 /// Clones the patch for each given matching and aligns it to the corresponding target of each
 /// matching.
 /// The source file in each matching must also be the source file of the FileDiff from which
@@ -88,7 +116,7 @@ pub fn align_to_multiple_targets(
 ) -> Vec<AlignedPatch> {
     let mut aligned_patches = Vec::with_capacity(target_matchings.len());
     for matching in target_matchings.into_iter() {
-        aligned_patches.push(align_to_target(patch.clone(), matching));
+        aligned_patches.push(align_patch_to_target(patch.clone(), matching));
     }
     aligned_patches
 }

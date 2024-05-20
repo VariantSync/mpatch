@@ -6,9 +6,10 @@ pub mod matching;
 use std::{fmt::Display, fs::File, io::BufWriter, path::PathBuf, vec};
 
 use crate::{
+    alignment::align_filtered_patch_to_target,
     diffs::{FileDiff, VersionDiff},
     io::{print_rejects, write_rejects, FileArtifact, StrippedPath},
-    patch::{alignment::align_to_target, application::apply_patch},
+    patch::application::apply_patch,
     Error, Matcher,
 };
 
@@ -94,7 +95,7 @@ pub fn apply_all(
         let matching = matcher.match_files(source, target);
         let patch = FilePatch::from(file_diff);
         let filtered_patch = filter.apply_filter(patch, &matching);
-        let aligned_patch = align_to_target(filtered_patch, matching);
+        let aligned_patch = align_filtered_patch_to_target(filtered_patch, matching);
 
         let patch_outcome = apply_patch(aligned_patch, dryrun)?;
 
@@ -207,6 +208,31 @@ impl From<FileDiff> for FilePatch {
             changes,
             change_type: file_change_type,
         }
+    }
+}
+
+/// An aligned patch contains a vector of changes that were aligned for a specific target file.
+/// The patch holds ownership of the target FileArtifact and changes it during patch application.
+/// Applying the patch consumes it to prohibit mutliple applications of the same patch to the same
+/// file. An aligned patch also has a change type that describes whether the file is created,
+/// removed, or modified.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FilteredPatch {
+    changes: Vec<Change>,
+    rejected_changes: Vec<Change>,
+    change_type: FileChangeType,
+}
+
+impl FilteredPatch {
+    /// Returns a reference to the aligned changes of this patch.
+    pub fn changes(&self) -> &[Change] {
+        self.changes.as_ref()
+    }
+}
+
+impl Display for FilteredPatch {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.change_type,)
     }
 }
 

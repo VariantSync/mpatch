@@ -1,7 +1,7 @@
 pub mod test_utils;
 
 use mpatch::{
-    patch::{alignment::align_to_target, AlignedPatch},
+    patch::{alignment::align_patch_to_target, AlignedPatch},
     FileArtifact, LCSMatcher, Matcher,
 };
 use test_utils::{read_patch, run_alignment_test, run_application_test};
@@ -152,5 +152,5 @@ pub fn get_aligned_patch(source: &str, target: &str, diff: &str) -> AlignedPatch
     let matching = matcher.match_files(source, target);
 
     let patch = read_patch(diff);
-    align_to_target(patch, matching)
+    align_patch_to_target(patch, matching)
 }
