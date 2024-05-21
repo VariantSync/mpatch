@@ -228,6 +228,11 @@ impl FilteredPatch {
     pub fn changes(&self) -> &[Change] {
         self.changes.as_ref()
     }
+
+    /// Returns a reference to the rejects of the filtering process
+    pub fn rejected_changes(&self) -> &[Change] {
+        &self.rejected_changes
+    }
 }
 
 impl Display for FilteredPatch {

@@ -16,25 +16,25 @@ const EXPECTED_PATCH_10: &str = "tests/filter/expected_patches/distance_10.diff"
 #[test]
 fn distance_0() {
     let mut filter = DistanceFilter::new(0);
-    run_filter_test(&mut filter, SOURCE, TARGET, DIFF, EXPECTED_PATCH_0);
+    run_filter_test(&mut filter, SOURCE, TARGET, DIFF, EXPECTED_PATCH_0, true);
 }
 
 #[test]
 fn distance_1() {
     let mut filter = DistanceFilter::new(1);
-    run_filter_test(&mut filter, SOURCE, TARGET, DIFF, EXPECTED_PATCH_1);
+    run_filter_test(&mut filter, SOURCE, TARGET, DIFF, EXPECTED_PATCH_1, true);
 }
 
 #[test]
 fn distance_3() {
     let mut filter = DistanceFilter::new(2);
-    run_filter_test(&mut filter, SOURCE, TARGET, DIFF, EXPECTED_PATCH_3);
+    run_filter_test(&mut filter, SOURCE, TARGET, DIFF, EXPECTED_PATCH_3, true);
 }
 
 #[test]
 fn distance_10() {
     let mut filter = DistanceFilter::new(10);
-    run_filter_test(&mut filter, SOURCE, TARGET, DIFF, EXPECTED_PATCH_10);
+    run_filter_test(&mut filter, SOURCE, TARGET, DIFF, EXPECTED_PATCH_10, false);
 }
 
 pub fn run_filter_test(
@@ -43,6 +43,7 @@ pub fn run_filter_test(
     target: &str,
     diff: &str,
     expected_patch: &str,
+    expect_rejects: bool,
 ) {
     let source = FileArtifact::read(source).unwrap();
     let target = FileArtifact::read(target).unwrap();
@@ -54,6 +55,13 @@ pub fn run_filter_test(
     let expected_patch = read_patch(expected_patch);
 
     let filtered_patch = filter.apply_filter(patch, &matching);
+
+    if expect_rejects {
+        assert_eq!(
+            expect_rejects,
+            !filtered_patch.rejected_changes().is_empty()
+        );
+    }
 
     for (expected, aligned) in expected_patch
         .changes()
