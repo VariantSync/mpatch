@@ -4,7 +4,7 @@ use mpatch::{
     patch::{alignment::align_patch_to_target, AlignedPatch},
     FileArtifact, LCSMatcher, Matcher,
 };
-use test_utils::{read_patch, run_alignment_test, run_application_test};
+use test_utils::{get_aligned_patch, read_patch, run_alignment_test, run_application_test};
 
 // TODO: Test multi-alignment
 // TODO: Test file creation
@@ -142,15 +142,4 @@ fn apply_non_existant() {
 fn apply_appending() {
     let aligned_patch = get_aligned_patch(APPENDING_SOURCE, APPENDING_TARGET, APPENDING_DIFF);
     run_application_test(aligned_patch, EXPECTED_APPENDING_RESULT, 0);
-}
-
-pub fn get_aligned_patch(source: &str, target: &str, diff: &str) -> AlignedPatch {
-    let source = FileArtifact::read(source).unwrap();
-    let target = FileArtifact::read(target).unwrap();
-
-    let mut matcher = LCSMatcher;
-    let matching = matcher.match_files(source, target);
-
-    let patch = read_patch(diff);
-    align_patch_to_target(patch, matching)
 }

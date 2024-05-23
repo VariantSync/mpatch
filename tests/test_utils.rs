@@ -74,3 +74,14 @@ pub fn read_patch(path: &str) -> FilePatch {
     println!("{}", diff.header());
     FilePatch::from(diff)
 }
+
+pub fn get_aligned_patch(source: &str, target: &str, diff: &str) -> AlignedPatch {
+    let source = FileArtifact::read(source).unwrap();
+    let target = FileArtifact::read(target).unwrap();
+
+    let mut matcher = LCSMatcher;
+    let matching = matcher.match_files(source, target);
+
+    let patch = read_patch(diff);
+    align_patch_to_target(patch, matching)
+}
