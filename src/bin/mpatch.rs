@@ -7,7 +7,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse();
 
     let matcher = LCSMatcher;
-    let filter = DistanceFilter::new(2);
+    let filter = DistanceFilter::new(1);
 
     let patch_paths = PatchPaths::new(
         cli.source_dir.into(),
