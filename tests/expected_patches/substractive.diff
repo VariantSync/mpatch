@@ -3,7 +3,7 @@ diff -Naur version-0/substractive.c version-1/substractive.c
 +++ version-1/substractive.c	2024-02-02 09:45:34.126673332 +0100
 @@ -6,7 +6,7 @@
 -  unsigned long long result;
-@@ -6,7 +6,7 @@
+@@ -7,7 +7,7 @@
 +  unsigned long long res;
 @@ -12,9 +12,9 @@
 -    result = factorial(number);

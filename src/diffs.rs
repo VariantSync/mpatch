@@ -196,12 +196,8 @@ impl FileDiff {
     /// information about the source file, and the information about the target file.
     pub fn header(&self) -> String {
         format!(
-            "{}\n--- {}\t{}\n+++ {}\t{}",
-            self.diff_command,
-            self.source_file_header.path.to_str().unwrap(),
-            self.source_file_header.timestamp,
-            self.target_file_header.path.to_str().unwrap(),
-            self.target_file_header.timestamp
+            "{}\n{}\n{}",
+            self.diff_command, self.source_file_header.raw, self.target_file_header.raw,
         )
     }
 }
@@ -665,6 +661,7 @@ pub struct SourceFileHeader {
     path: PathBuf,
     // TODO: Use actual time value
     timestamp: String,
+    raw: String,
 }
 
 impl SourceFileHeader {
@@ -694,8 +691,12 @@ impl TryFrom<String> for SourceFileHeader {
                 ErrorKind::DiffParseError,
             ));
         }
-        let (path, timestamp) = split_file_metainfo(line)?;
-        Ok(Self { path, timestamp })
+        let (path, timestamp) = split_file_metainfo(line.clone())?;
+        Ok(Self {
+            path,
+            timestamp,
+            raw: line,
+        })
     }
 }
 
@@ -714,6 +715,7 @@ pub struct TargetFileHeader {
     path: PathBuf,
     // TODO: Use actual time value
     timestamp: String,
+    raw: String,
 }
 
 impl TargetFileHeader {
@@ -743,8 +745,12 @@ impl TryFrom<String> for TargetFileHeader {
                 ErrorKind::DiffParseError,
             ));
         }
-        let (path, timestamp) = split_file_metainfo(line)?;
-        Ok(Self { path, timestamp })
+        let (path, timestamp) = split_file_metainfo(line.clone())?;
+        Ok(Self {
+            path,
+            timestamp,
+            raw: line,
+        })
     }
 }
 
@@ -761,7 +767,11 @@ impl TryFrom<&str> for TargetFileHeader {
 ///
 /// Returns a tuple of path and timestamp.
 fn split_file_metainfo(input: String) -> Result<(PathBuf, String), Error> {
-    let parts: Vec<&str> = input.split_whitespace().collect();
+    let parts: Vec<&str> = if input.contains("\"") {
+        input.split("\"").map(|s| s.trim()).collect()
+    } else {
+        input.split_whitespace().collect()
+    };
 
     let path_id = 1;
     let path = PathBuf::from(parts[path_id]);
@@ -879,6 +889,22 @@ mod tests {
         let source = SourceFileHeader::try_from(line).unwrap();
         assert_eq!("version-A/double_end.txt", source.path.to_str().unwrap());
         assert_eq!("2023-11-03 16:39:35.953263076 +0100", source.timestamp);
+    }
+
+    #[test]
+    fn parse_valid_source_file_with_whitespace() {
+        let line = "--- \"version-A/double end.txt\"	2023-11-03 16:39:35.953263076 +0100";
+        let source = SourceFileHeader::try_from(line).unwrap();
+        assert_eq!("version-A/double end.txt", source.path.to_str().unwrap());
+        assert_eq!("2023-11-03 16:39:35.953263076 +0100", source.timestamp);
+    }
+
+    #[test]
+    fn parse_valid_target_file_with_whitespace() {
+        let line = "+++ \"version-B/double end.txt\"	2023-11-03 16:40:12.500153951 +0100";
+        let source = TargetFileHeader::try_from(line).unwrap();
+        assert_eq!("version-B/double end.txt", source.path.to_str().unwrap());
+        assert_eq!("2023-11-03 16:40:12.500153951 +0100", source.timestamp);
     }
 
     #[test]

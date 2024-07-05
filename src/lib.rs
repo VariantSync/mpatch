@@ -14,22 +14,25 @@
 //! ```
 //! use std::path::PathBuf;
 //! use std::str::FromStr;
-//! let source_dir = PathBuf::from("tests/samples/source_variant/version-0");
-//! let target_dir = PathBuf::from("tests/samples/target_variant/version-0");
-//! let patch_file = PathBuf::from("tests/samples/patch.diff");
-//! let rejects_file = None;
+//! use mpatch::KeepAllFilter;
+//! use mpatch::PatchPaths;
+//!
 //! let strip = 1;
 //! let dryrun = true;
 //! let matcher = mpatch::LCSMatcher;
+//! let patch_paths = PatchPaths::new(
+//!     PathBuf::from("tests/samples/source_variant/version-0"),
+//!     PathBuf::from("tests/samples/target_variant/version-0"),
+//!     PathBuf::from("tests/samples/patch.diff"),
+//!     None,
+//! );
 //!
 //! if let Err(error) = mpatch::apply_all(
-//!     source_dir,
-//!     target_dir,
-//!     patch_file,
-//!     rejects_file,
+//!     patch_paths,
 //!     strip,
 //!     dryrun,
 //!     matcher,
+//!     KeepAllFilter,
 //! ) {
 //!     eprintln!("{}", error);
 //! }
@@ -37,14 +40,26 @@
 
 // TODO: Feature traces and target configuration are part of the input!
 // TODO: Handle git diffs as well; they have differences e.g., /dev/null, permission change
+// TODO: Handle certain edge cases in which code is added at then end of the file (the existing
+// last line should not be pushed down)
 
 /// Module for types that implement reading and parsing diff files.
 pub mod diffs;
 /// Module for error types.
 pub mod error;
 mod io;
-/// Module for types that implement matching two files.
-pub mod matching;
+/// Module for aligning patches
+#[doc(inline)]
+pub use patch::alignment;
+/// Module for applying patches
+#[doc(inline)]
+pub use patch::application;
+/// Module for filtering patches
+#[doc(inline)]
+pub use patch::filtering;
+/// Module for matching two files.
+#[doc(inline)]
+pub use patch::matching;
 /// Module for types and functions that represent patches and patch application.
 pub mod patch;
 
@@ -67,8 +82,16 @@ pub use matching::Matching;
 #[doc(inline)]
 pub use patch::apply_all;
 #[doc(inline)]
+pub use patch::filtering::DistanceFilter;
+#[doc(inline)]
+pub use patch::filtering::Filter;
+#[doc(inline)]
+pub use patch::filtering::KeepAllFilter;
+#[doc(inline)]
 pub use patch::AlignedPatch;
 #[doc(inline)]
 pub use patch::FilePatch;
 #[doc(inline)]
 pub use patch::PatchOutcome;
+#[doc(inline)]
+pub use patch::PatchPaths;

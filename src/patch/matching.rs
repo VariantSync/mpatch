@@ -240,25 +240,38 @@ impl Matching {
     /// ## Output
     /// Returns None if there is no matched line at or above the given line number. Returns
     /// Some(usize) with the target line number if a match has been found.
-    pub(crate) fn target_index_fuzzy(&self, line_number: usize) -> MatchId {
+    pub(crate) fn target_index_fuzzy(&self, line_number: usize) -> (MatchId, MatchOffset) {
         let mut line_number = line_number;
 
         // Search for the closest context line above the change; i.e., key and value must both be
         // Some(...)
+        // We have to insert the change after the found target line, if we had to skip at least one
+        // line
+        let mut insert_after = false;
+        let mut match_offset = MatchOffset(0);
         while line_number > 0 && self.target_index(line_number).flatten().is_none() {
             line_number -= 1;
+            match_offset.0 += 1;
+            insert_after = true;
         }
 
         if line_number == 0 {
             // Line numbers start at '1', so there is no valid target index for '0'
-            None
+            (None, match_offset)
         } else {
             let target_line = self.target_index(line_number);
-            // The result must be Some(...) in all cases
-            target_line.unwrap()
+            if insert_after {
+                // The result must be Some(...) in all cases
+                (target_line.unwrap().map(|v| v + 1), match_offset)
+            } else {
+                (target_line.unwrap(), match_offset)
+            }
         }
     }
 }
+
+// The match offset of a fuzzy match search.
+pub struct MatchOffset(pub usize);
 
 /// A simple matcher using the `similar` crate which offers implementations of the LCS algorithm.
 pub struct LCSMatcher;

@@ -1,0 +1,28 @@
+diff -Naur version-0/main.c version-1/main.c
+--- version-0/main.c	2024-05-17 15:52:33.083273519 +0200
++++ version-1/main.c	2024-05-17 15:53:35.893272901 +0200
+@@ -1,10 +1,10 @@
+ #include <stdio.h>
+ // Function prototype declaration
+ unsigned long long factorial(int n);
++// This one should stay!
+ int main() {
+   int number;
+   unsigned long long result;
+-  // This removal should stay as well!
+   // Ask the user for input
+   printf("Enter a positive integer: ");
+   scanf("%d", &number);
+@@ -19,9 +19,12 @@
+   }
+   return 0;
+ }
++// THIS ONE SHOULD STAY
+ // Function to calculate the factorial of a number
++// THIS MIGHT BE REMOVED!
+ unsigned long long factorial(int n) {
+   if (n == 0) {
++    // THIS ONE SHOULD BE FILTERED!
+     return 1; // Base case: factorial of 0 is 1
+   } else {
+     return n * factorial(n - 1); // Recursive case

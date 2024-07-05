@@ -1,0 +1,11 @@
+diff -Naur version-0/appending.c version-1/appending.c
+--- version-0/appending.c	2024-05-17 11:00:45.783231097 +0200
++++ version-1/appending.c	2024-05-17 11:00:47.609897748 +0200
+@@ -22,3 +22,10 @@
++unsigned long long factorial(int n) {
++  if (n == 0) {
++    return 1; // Base case: factorial of 0 is 1
++  } else {
++    return n * factorial(n - 1); // Recursive case
++  }
++}

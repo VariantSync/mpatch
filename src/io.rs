@@ -23,11 +23,14 @@ pub fn write_rejects<P: AsRef<Path>>(
     path: P,
 ) -> Result<(), Error> {
     // Create the rejects file on demand
-    let file_writer = rejects_file.get_or_insert(BufWriter::new(File::create_new(&path)?));
+    let file_writer = rejects_file.get_or_insert_with(|| {
+        BufWriter::new(File::create_new(&path).expect("was not able to create rejects file"))
+    });
     file_writer.write_fmt(format_args!("{}\n", diff_header))?;
     for reject in rejects {
         file_writer.write_fmt(format_args!("{}: {}", reject.change_id(), reject))?
     }
+    file_writer.flush()?;
     Ok(())
 }
 

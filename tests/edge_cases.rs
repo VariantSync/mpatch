@@ -5,7 +5,7 @@ use std::{
     sync::Once,
 };
 
-use mpatch::{Error, FileArtifact, LCSMatcher};
+use mpatch::{filtering::KeepAllFilter, patch::PatchPaths, Error, FileArtifact, LCSMatcher};
 
 const RESULT_DIR: &str = "tests/edge_cases/target_variant/version-1";
 const SOURCE_DIR: &str = "tests/edge_cases/source_variant/version-0";
@@ -64,15 +64,13 @@ fn prepare_result_dir() {
 fn added_file() -> Result<(), Error> {
     prepare_result_dir();
     let _cleaner = FileCleaner(ADDED_FILE_ACTUAL_RESULT);
-    mpatch::apply_all(
+    let patch_paths = PatchPaths::new(
         as_path(SOURCE_DIR),
         as_path(RESULT_DIR),
         as_path(ADDED_FILE_DIFF),
         None,
-        1,
-        false,
-        LCSMatcher,
-    )?;
+    );
+    mpatch::apply_all(patch_paths, 1, false, LCSMatcher, KeepAllFilter)?;
     compare_actual_and_expected(ADDED_FILE_ACTUAL_RESULT, ADDED_FILE_EXPECTED_RESULT)?;
     Ok(())
 }
@@ -81,15 +79,13 @@ fn added_file() -> Result<(), Error> {
 fn removed_file() -> Result<(), Error> {
     prepare_result_dir();
     let _cleaner = FileCleaner(REMOVED_ACTUAL_RESULT);
-    mpatch::apply_all(
+    let patch_paths = PatchPaths::new(
         as_path(SOURCE_DIR),
         as_path(RESULT_DIR),
         as_path(REMOVED_FILE_DIFF),
         None,
-        1,
-        false,
-        LCSMatcher,
-    )?;
+    );
+    mpatch::apply_all(patch_paths, 1, false, LCSMatcher, KeepAllFilter)?;
     compare_actual_and_expected(REMOVED_ACTUAL_RESULT, REMOVED_FILE_EXPECTED_RESULT)?;
     Ok(())
 }
@@ -98,15 +94,13 @@ fn removed_file() -> Result<(), Error> {
 fn missing_target() -> Result<(), Error> {
     prepare_result_dir();
     let _cleaner = FileCleaner(MISSING_TARGET_ACTUAL_RESULT);
-    mpatch::apply_all(
+    let patch_paths = PatchPaths::new(
         as_path(SOURCE_DIR),
         as_path(RESULT_DIR),
         as_path(MISSING_TARGET_DIFF),
         None,
-        1,
-        false,
-        LCSMatcher,
-    )?;
+    );
+    mpatch::apply_all(patch_paths, 1, false, LCSMatcher, KeepAllFilter)?;
     assert!(!Path::exists(&PathBuf::from(MISSING_TARGET_ACTUAL_RESULT)));
     Ok(())
 }
@@ -115,15 +109,13 @@ fn missing_target() -> Result<(), Error> {
 fn renamed_file() -> Result<(), Error> {
     prepare_result_dir();
     let _cleaner = FileCleaner(RENAMED_ACTUAL_RESULT);
-    mpatch::apply_all(
+    let patch_paths = PatchPaths::new(
         as_path(SOURCE_DIR),
         as_path(RESULT_DIR),
         as_path(RENAMED_FILE_DIFF),
         None,
-        1,
-        false,
-        LCSMatcher,
-    )?;
+    );
+    mpatch::apply_all(patch_paths, 1, false, LCSMatcher, KeepAllFilter)?;
     compare_actual_and_expected(RENAMED_ACTUAL_RESULT, RENAMED_FILE_EXPECTED_RESULT)?;
     Ok(())
 }
@@ -132,15 +124,13 @@ fn renamed_file() -> Result<(), Error> {
 fn binary_file() {
     prepare_result_dir();
     let _cleaner = FileCleaner(BINARY_FILE_ACTUAL_RESULT);
-    if let Err(error) = mpatch::apply_all(
+    let patch_paths = PatchPaths::new(
         as_path(BINARY_SOURCE_DIR),
         as_path(BINARY_TARGET_DIR),
         as_path(BINARY_FILE_DIFF),
         None,
-        1,
-        false,
-        LCSMatcher,
-    ) {
+    );
+    if let Err(error) = mpatch::apply_all(patch_paths, 1, false, LCSMatcher, KeepAllFilter) {
         assert_eq!(error.message(), "stream did not contain valid UTF-8");
     } else {
         panic!("binary file patching should not yet be allowed");

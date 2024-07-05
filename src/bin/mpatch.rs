@@ -1,22 +1,22 @@
 use std::{env, path::PathBuf};
 
 use clap::Parser;
-use mpatch::LCSMatcher;
+use mpatch::{filtering::DistanceFilter, patch::PatchPaths, LCSMatcher};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse();
 
     let matcher = LCSMatcher;
+    let filter = DistanceFilter::new(2);
 
-    if let Err(error) = mpatch::apply_all(
+    let patch_paths = PatchPaths::new(
         cli.source_dir.into(),
         env::current_dir()?,
         PathBuf::from(cli.patch_file),
         cli.rejects_file.map(PathBuf::from),
-        cli.strip,
-        cli.dryrun,
-        matcher,
-    ) {
+    );
+
+    if let Err(error) = mpatch::apply_all(patch_paths, cli.strip, cli.dryrun, matcher, filter) {
         eprintln!("{}", error);
         return Err(Box::new(error));
     }

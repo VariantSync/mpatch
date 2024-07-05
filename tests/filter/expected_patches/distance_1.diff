@@ -1,0 +1,9 @@
+diff -Naur version-0/main.c version-1/main.c
+--- version-0/main.c	2024-05-17 15:52:33.083273519 +0200
++++ version-1/main.c	2024-05-17 15:53:35.893272901 +0200
+@@ -4,10 +4,10 @@
++// This one should stay!
+@@ -7,10 +7,10 @@
+-  // This removal should stay as well!
+@@ -22,10 +22,10 @@
++// THIS ONE SHOULD STAY
