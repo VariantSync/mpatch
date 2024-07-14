@@ -5,7 +5,9 @@ use std::{
     sync::Once,
 };
 
-use mpatch::{filtering::KeepAllFilter, patch::PatchPaths, Error, FileArtifact, LCSMatcher};
+use mpatch::{
+    filtering::KeepAllFilter, patch::PatchPaths, Error, FileArtifact, LCSMatcher, VersionDiff,
+};
 
 const RESULT_DIR: &str = "tests/edge_cases/target_variant/version-1";
 const SOURCE_DIR: &str = "tests/edge_cases/source_variant/version-0";
@@ -171,4 +173,18 @@ impl<'a> Drop for FileCleaner<'a> {
             fs::remove_file(self.0).unwrap()
         }
     }
+}
+
+#[test]
+fn crlf() {
+    const DIFF_FILE: &str = "tests/weird_edge_cases/diffs/crlf.diff";
+    let diff = VersionDiff::read(DIFF_FILE).unwrap();
+    let file_diffs = diff.file_diffs();
+    assert_eq!(1, file_diffs.len());
+}
+
+#[test]
+fn mixed() {
+    const DIFF_FILE: &str = "tests/weird_edge_cases/diffs/mixed.diff";
+    let diff = VersionDiff::read(DIFF_FILE).unwrap();
 }
