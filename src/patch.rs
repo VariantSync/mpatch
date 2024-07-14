@@ -69,9 +69,12 @@ pub fn apply_all(
     mut filter: impl Filter,
 ) -> Result<(), Error> {
     let diff = VersionDiff::read(patch_paths.patch_file_path)?;
+    eprintln!("read diff");
 
     // We only create a rejects file if there are rejects
-    let mut rejects_file: Option<BufWriter<File>> = None;
+    let mut rejects_file: Option<BufWriter<File>> = patch_paths.rejects_file_path.map(|path| {
+        BufWriter::new(File::create_new(path).expect("was not able to create rejects file"))
+    });
 
     for file_diff in diff {
         // Required for reject printing/writing
@@ -82,6 +85,7 @@ pub fn apply_all(
             &file_diff.source_file_header().path_cloned(),
             strip,
         ));
+        let path_clone = source_file_path.clone();
 
         let mut target_file_path = patch_paths.target_dir_path.clone();
         target_file_path.push(PathBuf::strip_cloned(
@@ -89,8 +93,34 @@ pub fn apply_all(
             strip,
         ));
 
-        let source = FileArtifact::read_or_create_empty(source_file_path)?;
-        let target = FileArtifact::read_or_create_empty(target_file_path)?;
+
+
+        let source = match FileArtifact::read_or_create_empty(source_file_path.clone()) {
+            Ok(a) => a,
+            Err(e) => {
+                eprintln!("was not able to read source file {source_file_path:?} due to error.");
+                eprintln!("{}", e.message());
+                handle_rejects(
+                    diff_header,
+                    FilePatch::from(file_diff).changes(),
+                    &mut rejects_file,
+                )?;
+                continue;
+            }
+        };
+        let target = match FileArtifact::read_or_create_empty(target_file_path) {
+            Ok(a) => a,
+            Err(e) => {
+                eprintln!("was not able to read target file {source_file_path:?} due to error.");
+                eprintln!("{}", e.message());
+                handle_rejects(
+                    diff_header,
+                    FilePatch::from(file_diff).changes(),
+                    &mut rejects_file,
+                )?;
+                continue;
+            }
+        };
 
         let matching = matcher.match_files(source, target);
         let patch = FilePatch::from(file_diff);
@@ -109,16 +139,25 @@ pub fn apply_all(
         println!("--------------------------------------------------------");
         println!("{change_type} {}", actual_result.path().to_string_lossy());
 
-        if !rejects.is_empty() {
-            match &patch_paths.rejects_file_path {
-                Some(path) => write_rejects(diff_header, rejects, &mut rejects_file, path)?,
-                None => {
-                    print_rejects(diff_header, rejects);
-                }
+        handle_rejects(diff_header, rejects, &mut rejects_file)?;
+    }
+
+    Ok(())
+}
+
+fn handle_rejects(
+    diff_header: String,
+    rejects: &[Change],
+    rejects_file: &mut Option<BufWriter<File>>,
+) -> Result<(), Error> {
+    if !rejects.is_empty() {
+        match rejects_file {
+            Some(writer) => write_rejects(diff_header, rejects, writer)?,
+            None => {
+                print_rejects(diff_header, rejects);
             }
         }
     }
-
     Ok(())
 }
 
