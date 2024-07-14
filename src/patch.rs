@@ -85,15 +85,12 @@ pub fn apply_all(
             &file_diff.source_file_header().path_cloned(),
             strip,
         ));
-        let path_clone = source_file_path.clone();
 
         let mut target_file_path = patch_paths.target_dir_path.clone();
         target_file_path.push(PathBuf::strip_cloned(
             &file_diff.target_file_header().path_cloned(),
             strip,
         ));
-
-
 
         let source = match FileArtifact::read_or_create_empty(source_file_path.clone()) {
             Ok(a) => a,
