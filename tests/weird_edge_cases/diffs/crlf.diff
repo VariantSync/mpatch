@@ -1,0 +1,21 @@
+diff -N -u -r -Z '--exclude=.*' source-v0/tests/functional/lang/parse-okay-crlf.nix source-v1/tests/functional/lang/parse-okay-crlf.nix
+--- source-v0/tests/functional/lang/parse-okay-crlf.nix	1970-01-01 01:00:00.000000000 +0100
++++ source-v1/tests/functional/lang/parse-okay-crlf.nix	2024-07-13 18:04:46.426362348 +0200
+@@ -0,0 +1,17 @@
++rec {
++
++  /* Dit is
++  een test. */
++
++  x = 
++  # Dit is een test.y;
++  
++  y = 123;
++
++  # CR or CR/LF (but not explicit \r's) in strings should be
++  # translated to LF.
++  foo = "multiline
++  string
++  test\r";
++
++  z = 456;}
