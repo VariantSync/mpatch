@@ -69,7 +69,6 @@ pub fn apply_all(
     mut filter: impl Filter,
 ) -> Result<(), Error> {
     let diff = VersionDiff::read(patch_paths.patch_file_path)?;
-    eprintln!("read diff");
 
     // We only create a rejects file if there are rejects
     let mut rejects_file: Option<BufWriter<File>> = patch_paths.rejects_file_path.map(|path| {
