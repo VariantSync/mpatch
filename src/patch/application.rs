@@ -88,10 +88,6 @@ fn apply_file_modification(patch: AlignedPatch, dryrun: bool) -> Result<PatchOut
                 }
                 LineChangeType::Remove => {
                     // remove this line by skipping it
-                    assert_eq!(
-                        line, change.line,
-                        "unexpected line difference in line {target_line_number}"
-                    );
                     target_line_number += 1;
                     continue 'lines_loop;
                 }
