@@ -91,32 +91,8 @@ pub fn apply_all(
             strip,
         ));
 
-        let source = match FileArtifact::read_or_create_empty(source_file_path.clone()) {
-            Ok(a) => a,
-            Err(e) => {
-                eprintln!("was not able to read source file {source_file_path:?} due to error.");
-                eprintln!("{}", e.message());
-                handle_rejects(
-                    diff_header,
-                    FilePatch::from(file_diff).changes(),
-                    &mut rejects_file,
-                )?;
-                continue;
-            }
-        };
-        let target = match FileArtifact::read_or_create_empty(target_file_path) {
-            Ok(a) => a,
-            Err(e) => {
-                eprintln!("was not able to read target file {source_file_path:?} due to error.");
-                eprintln!("{}", e.message());
-                handle_rejects(
-                    diff_header,
-                    FilePatch::from(file_diff).changes(),
-                    &mut rejects_file,
-                )?;
-                continue;
-            }
-        };
+        let source = FileArtifact::read_or_create_empty(source_file_path.clone())?;
+        let target = FileArtifact::read_or_create_empty(target_file_path)?;
 
         let matching = matcher.match_files(source, target);
         let patch = FilePatch::from(file_diff);
