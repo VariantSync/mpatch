@@ -7,7 +7,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse();
 
     let matcher = LCSMatcher;
-    let filter = DistanceFilter::new(cli.max_match_distance);
+    let filter = DistanceFilter::new(cli.match_distance_cutoff);
 
     let patch_paths = PatchPaths::new(
         cli.source_dir.into(),
@@ -34,8 +34,8 @@ struct Cli {
     rejects_file: Option<String>,
     #[arg(long = "strip", default_value_t = 0)]
     strip: usize,
-    #[arg(long = "max_match_distance", default_value_t = 0)]
-    max_match_distance: usize,
+    #[arg(long = "match_distance_cutoff", default_value_t = 2)]
+    match_distance_cutoff: usize,
     #[arg(long = "dryrun", default_value_t = false)]
     dryrun: bool,
 }
