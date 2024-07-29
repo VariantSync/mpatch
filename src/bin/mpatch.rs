@@ -1,13 +1,16 @@
 use std::{env, path::PathBuf};
 
 use clap::Parser;
-use mpatch::{filtering::DistanceFilter, patch::PatchPaths, LCSMatcher};
+use mpatch::{
+    filtering::{DistanceFilter, InsideMatchFilter},
+    patch::PatchPaths,
+    LCSMatcher,
+};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse();
 
     let matcher = LCSMatcher;
-    let filter = DistanceFilter::new(cli.match_distance_cutoff);
 
     let patch_paths = PatchPaths::new(
         cli.source_dir.into(),
@@ -16,7 +19,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         cli.rejects_file.map(PathBuf::from),
     );
 
-    if let Err(error) = mpatch::apply_all(patch_paths, cli.strip, cli.dryrun, matcher, filter) {
+    let result = match cli.filter.as_str() {
+        "distance" => {
+            let filter = DistanceFilter::new(cli.match_distance_cutoff);
+            mpatch::apply_all(patch_paths, cli.strip, cli.dryrun, matcher, filter)
+        }
+        "match" => {
+            let filter = InsideMatchFilter::new(cli.match_distance_cutoff);
+            mpatch::apply_all(patch_paths, cli.strip, cli.dryrun, matcher, filter)
+        }
+        _ => {
+            panic!("Invalid filter type");
+        }
+    };
+
+    if let Err(error) = result {
         eprintln!("{}", error);
         return Err(Box::new(error));
     }
@@ -38,4 +55,6 @@ struct Cli {
     match_distance_cutoff: usize,
     #[arg(long = "dryrun", default_value_t = false)]
     dryrun: bool,
+    #[arg(long = "filter", default_value = "distance")]
+    filter: String,
 }
