@@ -38,10 +38,7 @@
 //! }
 //! ```
 
-// TODO: Feature traces and target configuration are part of the input!
 // TODO: Handle git diffs as well; they have differences e.g., /dev/null, permission change
-// TODO: Handle certain edge cases in which code is added at then end of the file (the existing
-// last line should not be pushed down)
 
 /// Module for types that implement reading and parsing diff files.
 pub mod diffs;
