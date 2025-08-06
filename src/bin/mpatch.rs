@@ -17,7 +17,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
 
     if let Err(error) = mpatch::apply_all(patch_paths, cli.strip, cli.dryrun, matcher, filter) {
-        eprintln!("{}", error);
+        eprintln!("{error}");
         return Err(Box::new(error));
     }
 

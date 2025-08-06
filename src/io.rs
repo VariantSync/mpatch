@@ -21,7 +21,7 @@ pub fn write_rejects(
     rejects: &[Change],
     file_writer: &mut BufWriter<File>,
 ) -> Result<(), Error> {
-    file_writer.write_fmt(format_args!("{}\n", diff_header))?;
+    file_writer.write_fmt(format_args!("{diff_header}\n"))?;
     for reject in rejects {
         file_writer.write_fmt(format_args!("{}: {}", reject.change_id(), reject))?
     }

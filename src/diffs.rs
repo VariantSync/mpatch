@@ -162,7 +162,7 @@ impl FileDiff {
     /// # Returns
     /// Returns a ChangedLines iterator that iterates all HunkLine instances containing changes.
     ///
-    pub fn changes(&self) -> ChangedLines {
+    pub fn changes<'a>(&'a self) -> ChangedLines<'a> {
         let changes: Vec<&HunkLine> = self
             .hunks()
             .iter()

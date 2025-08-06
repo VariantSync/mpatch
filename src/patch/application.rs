@@ -73,13 +73,16 @@ fn apply_file_modification(patch: AlignedPatch, dryrun: bool) -> Result<PatchOut
     let mut target_line_number = 1;
     let mut patched_lines = vec![];
     'lines_loop: for line in lines {
-        while changes.peek().map_or(false, |c| match c.change_type {
-            // Adds are anchored to the context line above (i.e., lower than target_line_number)
-            LineChangeType::Add => c.line_number <= target_line_number,
-            // Removes are anchored to actual line being removed (i.e. the line being currently
-            // processed which has line number 'target_line_number'
-            LineChangeType::Remove => c.line_number == target_line_number,
-        }) {
+        while changes.peek().map_or_else(
+            || false,
+            |c| match c.change_type {
+                // Adds are anchored to the context line above (i.e., lower than target_line_number)
+                LineChangeType::Add => c.line_number <= target_line_number,
+                // Removes are anchored to actual line being removed (i.e. the line being currently
+                // processed which has line number 'target_line_number'
+                LineChangeType::Remove => c.line_number == target_line_number,
+            },
+        ) {
             let change = changes.next().expect("there should be a change to extract");
             match change.change_type {
                 LineChangeType::Add => {

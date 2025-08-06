@@ -152,7 +152,7 @@ fn compare_actual_and_expected(path_actual: &str, path_expected: &str) -> Result
             .zip(actual.into_lines().into_iter())
             .enumerate()
         {
-            assert_eq!(expected, actual, "lines {} differ", i)
+            assert_eq!(expected, actual, "lines {i} differ")
         }
     } else {
         assert!(actual.is_err());
@@ -186,5 +186,5 @@ fn crlf() {
 #[test]
 fn mixed() {
     const DIFF_FILE: &str = "tests/weird_edge_cases/diffs/mixed.diff";
-    let diff = VersionDiff::read(DIFF_FILE).unwrap();
+    VersionDiff::read(DIFF_FILE).unwrap();
 }

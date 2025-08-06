@@ -1,10 +1,6 @@
 pub mod test_utils;
 
-use mpatch::{
-    patch::{alignment::align_patch_to_target, AlignedPatch},
-    FileArtifact, LCSMatcher, Matcher,
-};
-use test_utils::{get_aligned_patch, read_patch, run_alignment_test, run_application_test};
+use test_utils::{get_aligned_patch, run_alignment_test, run_application_test};
 
 const INVARIANT_SOURCE: &str = "tests/samples/source_variant/version-0/invariant.c";
 const INVARIANT_TARGET: &str = "tests/samples/target_variant/version-0/invariant.c";
