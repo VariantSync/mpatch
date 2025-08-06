@@ -59,8 +59,6 @@ use self::filtering::Filter;
 /// Lastly, this function requires a matcher that is used to calculate the matching between source
 /// and target variant. See `mpatch::matching` for more information.
 ///
-// TODO: It would be great to track differences during file removal as rejects
-// TODO: Improve interface of this function (e.g., make it smaller or at least more versatile)
 pub fn apply_all(
     patch_paths: PatchPaths,
     strip: usize,

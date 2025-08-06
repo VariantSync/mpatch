@@ -6,14 +6,6 @@ use mpatch::{
 };
 use test_utils::{get_aligned_patch, read_patch, run_alignment_test, run_application_test};
 
-// TODO: Test multi-alignment
-// TODO: Test file creation
-// TODO: Test file removal
-// TODO: Test file renaming
-// TODO: Test file permission change
-// TODO: Test patch application to entire directory
-// TODO: Test missing target files
-
 const INVARIANT_SOURCE: &str = "tests/samples/source_variant/version-0/invariant.c";
 const INVARIANT_TARGET: &str = "tests/samples/target_variant/version-0/invariant.c";
 const INVARIANT_DIFF: &str = "tests/diffs/invariant.diff";
