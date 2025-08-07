@@ -1,4 +1,4 @@
-diff -Naur version-0/additive.c version-1/additive.c
+diff --color -NaurZ version-0/additive.c version-1/additive.c
 --- version-0/additive.c	2024-02-02 12:03:12.953265907 +0100
 +++ version-1/additive.c	2024-02-02 12:03:12.953265907 +0100
 @@ -3,7 +3,7 @@
@@ -22,7 +22,21 @@ diff -Naur version-0/additive.c version-1/additive.c
    }
    return 0;
  }
-diff -Naur version-0/invariant.c version-1/invariant.c
+diff --color -NaurZ version-0/appending.c version-1/appending.c
+--- version-0/appending.c	2024-05-17 19:51:59.905792244 +0200
++++ version-1/appending.c	2024-05-17 19:51:59.905792244 +0200
+@@ -19,3 +19,10 @@
+   return 0;
+ }
+ // Function to calculate the factorial of a number
++unsigned long long factorial(int n) {
++  if (n == 0) {
++    return 1; // Base case: factorial of 0 is 1
++  } else {
++    return n * factorial(n - 1); // Recursive case
++  }
++}
+diff --color -NaurZ version-0/invariant.c version-1/invariant.c
 --- version-0/invariant.c	2024-02-01 14:14:20.690115847 +0100
 +++ version-1/invariant.c	2024-02-01 14:14:20.690115847 +0100
 @@ -3,7 +3,7 @@
@@ -46,7 +60,7 @@ diff -Naur version-0/invariant.c version-1/invariant.c
    }
    return 0;
  }
-diff -Naur version-0/main.c version-1/main.c
+diff --color -NaurZ version-0/main.c version-1/main.c
 --- version-0/main.c	2024-02-01 14:14:20.690115847 +0100
 +++ version-1/main.c	2024-02-01 14:14:20.690115847 +0100
 @@ -3,7 +3,7 @@
@@ -70,8 +84,8 @@ diff -Naur version-0/main.c version-1/main.c
    }
    return 0;
  }
-diff -Naur version-0/mixed.c version-1/mixed.c
---- version-0/mixed.c	2024-02-02 12:03:12.953265907 +0100
+diff --color -NaurZ version-0/mixed.c version-1/mixed.c
+--- version-0/mixed.c	2024-02-17 16:23:43.899856705 +0100
 +++ version-1/mixed.c	2024-02-02 12:03:12.953265907 +0100
 @@ -3,7 +3,7 @@
  unsigned long long factorial(int n);
@@ -94,7 +108,17 @@ diff -Naur version-0/mixed.c version-1/mixed.c
    }
    return 0;
  }
-diff -Naur version-0/remove_non_existant.c version-1/remove_non_existant.c
+diff --color -NaurZ version-0/prepending.c version-1/prepending.c
+--- version-0/prepending.c	2025-08-07 13:36:05.599856189 +0200
++++ version-1/prepending.c	2025-08-07 13:36:02.562534718 +0200
+@@ -1,3 +1,6 @@
++#include <stdio.h>
++// Function prototype declaration
++unsigned long long factorial(int n);
+ int main() {
+   int number;
+   unsigned long long result;
+diff --color -NaurZ version-0/remove_non_existant.c version-1/remove_non_existant.c
 --- version-0/remove_non_existant.c	2024-02-02 15:12:32.535612751 +0100
 +++ version-1/remove_non_existant.c	2024-02-02 15:12:57.222196547 +0100
 @@ -1,8 +1,6 @@
@@ -106,8 +130,8 @@ diff -Naur version-0/remove_non_existant.c version-1/remove_non_existant.c
    printf("Enter a positive integer: ");
    scanf("%d", &number);
    // Check if the user has entered a negative integer
-diff -Naur version-0/substractive.c version-1/substractive.c
---- version-0/substractive.c	2024-02-02 12:03:12.953265907 +0100
+diff --color -NaurZ version-0/substractive.c version-1/substractive.c
+--- version-0/substractive.c	2024-02-17 16:30:39.766832111 +0100
 +++ version-1/substractive.c	2024-02-02 12:03:12.953265907 +0100
 @@ -3,7 +3,7 @@
  unsigned long long factorial(int n);
@@ -130,17 +154,3 @@ diff -Naur version-0/substractive.c version-1/substractive.c
    }
    return 0;
  }
-diff -Naur version-0/appending.c version-1/appending.c
---- version-0/appending.c	2024-05-17 11:00:45.783231097 +0200
-+++ version-1/appending.c	2024-05-17 11:00:47.609897748 +0200
-@@ -19,3 +19,10 @@
-   return 0;
- }
- // Function to calculate the factorial of a number
-+unsigned long long factorial(int n) {
-+  if (n == 0) {
-+    return 1; // Base case: factorial of 0 is 1
-+  } else {
-+    return n * factorial(n - 1); // Recursive case
-+  }
-+}

@@ -39,6 +39,12 @@ const APPENDING_DIFF: &str = "tests/diffs/appending.diff";
 const EXPECTED_APPENDING_PATCH: &str = "tests/expected_patches/appending.diff";
 const EXPECTED_APPENDING_RESULT: &str = "tests/samples/target_variant/version-1/appending.c";
 
+const PREPENDING_SOURCE: &str = "tests/samples/source_variant/version-0/prepending.c";
+const PREPENDING_TARGET: &str = "tests/samples/target_variant/version-0/prepending.c";
+const PREPENDING_DIFF: &str = "tests/diffs/prepending.diff";
+const EXPECTED_PREPENDING_PATCH: &str = "tests/expected_patches/prepending.diff";
+const EXPECTED_PREPENDING_RESULT: &str = "tests/samples/target_variant/version-1/prepending.c";
+
 #[test]
 fn invariant_alignment() {
     run_alignment_test(
@@ -130,4 +136,20 @@ fn apply_non_existant() {
 fn apply_appending() {
     let aligned_patch = get_aligned_patch(APPENDING_SOURCE, APPENDING_TARGET, APPENDING_DIFF);
     run_application_test(aligned_patch, EXPECTED_APPENDING_RESULT, 0);
+}
+
+#[test]
+fn prepending_alignment() {
+    run_alignment_test(
+        PREPENDING_SOURCE,
+        PREPENDING_TARGET,
+        PREPENDING_DIFF,
+        EXPECTED_PREPENDING_PATCH,
+    );
+}
+
+#[test]
+fn apply_prepending() {
+    let aligned_patch = get_aligned_patch(PREPENDING_SOURCE, PREPENDING_TARGET, PREPENDING_DIFF);
+    run_application_test(aligned_patch, EXPECTED_PREPENDING_RESULT, 0);
 }
