@@ -1,4 +1,5 @@
-use std::cell::RefCell;
+use std::ops::Deref;
+use std::ops::DerefMut;
 
 use similar::{Change, TextDiff};
 
@@ -257,7 +258,7 @@ impl Matching {
         // Some(...)
         // We have to insert the change after the found target line, if we had to skip at least one
         // line
-        let match_offset = RefCell::new(MatchOffset(0));
+        let mut match_offset = MatchOffset(0);
 
         let source_len = self.source.len();
 
@@ -278,8 +279,7 @@ impl Matching {
         };
 
         // Helper closure that checks lines above the given line number for potential matches.
-        let try_above_match = || {
-            let offset = match_offset.borrow().0;
+        let try_above_match = |offset| {
             // In bounds?
             if offset >= line_number {
                 // If there not, we insert the start of the file as match
@@ -290,8 +290,7 @@ impl Matching {
         };
 
         // Helper closure that checks lines below the given line number for potential matches.
-        let try_below_match = || {
-            let offset = match_offset.borrow().0;
+        let try_below_match = |offset| {
             // In bounds?
             if line_number + offset > source_len {
                 // If not, we insert the end of the file as match
@@ -303,18 +302,18 @@ impl Matching {
 
         // Increase the match offset until a match is found, either above or below
         let matched_line = loop {
-            let above = try_above_match();
+            let above = try_above_match(*match_offset);
             if let Found(l) = above {
                 break Some(l);
             }
-            let below = try_below_match();
+            let below = try_below_match(*match_offset);
             if let Found(l) = below {
                 break Some(l);
             }
 
             // Is the search out of bounds on both ends?
             if let (OutOfBounds(a), OutOfBounds(b)) = (above, below) {
-                // Reutn the start or end, depending on which is closer to the initial line number
+                // Return the start or end, depending on which is closer to the initial line number
                 if usize::abs_diff(a, line_number) <= usize::abs_diff(b, line_number) {
                     break Some(a);
                 } else {
@@ -323,16 +322,30 @@ impl Matching {
             }
 
             // Increase the offset to continue the search
-            match_offset.borrow_mut().0 += 1;
+            *match_offset += 1;
         };
 
-        (matched_line, match_offset.take())
+        (matched_line, match_offset)
     }
 }
 
 // The match offset of a fuzzy match search.
-#[derive(Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Copy, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct MatchOffset(pub usize);
+
+impl Deref for MatchOffset {
+    type Target = usize;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for MatchOffset {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
 
 /// A simple matcher using the `similar` crate which offers implementations of the LCS algorithm.
 pub struct LCSMatcher;
