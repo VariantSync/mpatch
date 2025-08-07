@@ -22,6 +22,18 @@ diff --color -NaurZ version-0/additive.c version-1/additive.c
    }
    return 0;
  }
+diff --color -NaurZ version-0/anchor_below.c version-1/anchor_below.c
+--- version-0/anchor_below.c	2025-08-07 13:46:09.367836988 +0200
++++ version-1/anchor_below.c	2025-08-07 13:46:40.655711631 +0200
+@@ -4,6 +4,8 @@
+ int main() {
+   int number;
+   unsigned long long result;
++  number = 3;
++  result = 0;
+   // Check if the user has entered a negative integer
+   if (number < 0) {
+     printf("Factorial of a negative number doesn't exist.\n");
 diff --color -NaurZ version-0/appending.c version-1/appending.c
 --- version-0/appending.c	2024-05-17 19:51:59.905792244 +0200
 +++ version-1/appending.c	2024-05-17 19:51:59.905792244 +0200

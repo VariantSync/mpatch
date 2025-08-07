@@ -45,6 +45,12 @@ const PREPENDING_DIFF: &str = "tests/diffs/prepending.diff";
 const EXPECTED_PREPENDING_PATCH: &str = "tests/expected_patches/prepending.diff";
 const EXPECTED_PREPENDING_RESULT: &str = "tests/samples/target_variant/version-1/prepending.c";
 
+const ANCHOR_BELOW_SOURCE: &str = "tests/samples/source_variant/version-0/anchor_below.c";
+const ANCHOR_BELOW_TARGET: &str = "tests/samples/target_variant/version-0/anchor_below.c";
+const ANCHOR_BELOW_DIFF: &str = "tests/diffs/anchor_below.diff";
+const EXPECTED_ANCHOR_BELOW_PATCH: &str = "tests/expected_patches/anchor_below.diff";
+const EXPECTED_ANCHOR_BELOW_RESULT: &str = "tests/samples/target_variant/version-1/anchor_below.c";
+
 #[test]
 fn invariant_alignment() {
     run_alignment_test(
@@ -152,4 +158,21 @@ fn prepending_alignment() {
 fn apply_prepending() {
     let aligned_patch = get_aligned_patch(PREPENDING_SOURCE, PREPENDING_TARGET, PREPENDING_DIFF);
     run_application_test(aligned_patch, EXPECTED_PREPENDING_RESULT, 0);
+}
+
+#[test]
+fn anchor_below_alignment() {
+    run_alignment_test(
+        ANCHOR_BELOW_SOURCE,
+        ANCHOR_BELOW_TARGET,
+        ANCHOR_BELOW_DIFF,
+        EXPECTED_ANCHOR_BELOW_PATCH,
+    );
+}
+
+#[test]
+fn apply_anchor_below() {
+    let aligned_patch =
+        get_aligned_patch(ANCHOR_BELOW_SOURCE, ANCHOR_BELOW_TARGET, ANCHOR_BELOW_DIFF);
+    run_application_test(aligned_patch, EXPECTED_ANCHOR_BELOW_RESULT, 0);
 }
