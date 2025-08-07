@@ -1,6 +1,18 @@
+use std::cell::RefCell;
+
 use similar::{Change, TextDiff};
 
 use crate::io::FileArtifact;
+
+enum SearchState {
+    Searching,
+    OutOfBounds(usize),
+    Found(usize),
+}
+
+use SearchState::Found;
+use SearchState::OutOfBounds;
+use SearchState::Searching;
 
 /// A trait for defining a common interface for matchers that match lines between two files.
 ///
@@ -241,36 +253,85 @@ impl Matching {
     /// Returns None if there is no matched line at or above the given line number. Returns
     /// Some(usize) with the target line number if a match has been found.
     pub(crate) fn target_index_fuzzy(&self, line_number: usize) -> (MatchId, MatchOffset) {
-        let mut line_number = line_number;
-
         // Search for the closest context line above the change; i.e., key and value must both be
         // Some(...)
         // We have to insert the change after the found target line, if we had to skip at least one
         // line
-        let mut insert_after = false;
-        let mut match_offset = MatchOffset(0);
-        while line_number > 0 && self.target_index(line_number).flatten().is_none() {
-            line_number -= 1;
-            match_offset.0 += 1;
-            insert_after = true;
-        }
+        let match_offset = RefCell::new(MatchOffset(0));
 
-        if line_number == 0 {
-            // Line numbers start at '1', so there is no valid target index for '0'
-            (None, match_offset)
-        } else {
-            let target_line = self.target_index(line_number);
-            if insert_after {
-                // The result must be Some(...) in all cases
-                (target_line.unwrap().map(|v| v + 1), match_offset)
-            } else {
-                (target_line.unwrap(), match_offset)
+        let source_len = self.source.len();
+
+        // Helper closure for checking on a potential match based on a source index
+        // If a match is found, the search loop can be stopped, so "true" is returned
+        let find_match = |source_id, insert_after| {
+            self.target_index(source_id)
+                .flatten()
+                .map_or(Searching, |l| {
+                    if insert_after {
+                        // If the insertion should happen after the found match, we increase the line
+                        // number by one
+                        Found(l + 1)
+                    } else {
+                        Found(l)
+                    }
+                })
+        };
+
+        // Helper closure that checks lines above the given line number for potential matches.
+        let try_above_match = || {
+            let offset = match_offset.borrow().0;
+            // In bounds?
+            if offset >= line_number {
+                // If there not, we insert the start of the file as match
+                return OutOfBounds(1);
             }
-        }
+            // For lines above, insertions should happend after the matched line
+            find_match(line_number - offset, offset > 0)
+        };
+
+        // Helper closure that checks lines below the given line number for potential matches.
+        let try_below_match = || {
+            let offset = match_offset.borrow().0;
+            // In bounds?
+            if line_number + offset > source_len {
+                // If not, we insert the end of the file as match
+                return OutOfBounds(source_len + 1);
+            }
+            // For lines below, insertions should happend before the matched line
+            find_match(line_number + offset, false)
+        };
+
+        // Increase the match offset until a match is found, either above or below
+        let matched_line = loop {
+            let above = try_above_match();
+            if let Found(l) = above {
+                break Some(l);
+            }
+            let below = try_below_match();
+            if let Found(l) = below {
+                break Some(l);
+            }
+
+            // Is the search out of bounds on both ends?
+            if let (OutOfBounds(a), OutOfBounds(b)) = (above, below) {
+                // Reutn the start or end, depending on which is closer to the initial line number
+                if usize::abs_diff(a, line_number) <= usize::abs_diff(b, line_number) {
+                    break Some(a);
+                } else {
+                    break Some(b);
+                }
+            }
+
+            // Increase the offset to continue the search
+            match_offset.borrow_mut().0 += 1;
+        };
+
+        (matched_line, match_offset.take())
     }
 }
 
 // The match offset of a fuzzy match search.
+#[derive(Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct MatchOffset(pub usize);
 
 /// A simple matcher using the `similar` crate which offers implementations of the LCS algorithm.
