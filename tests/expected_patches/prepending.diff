@@ -5,6 +5,3 @@ diff --color -NaurZ version-0/prepending.c version-1/prepending.c
 +#include <stdio.h>
 +// Function prototype declaration
 +unsigned long long factorial(int n);
- int main() {
-   int number;
-   unsigned long long result;

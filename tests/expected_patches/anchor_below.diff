@@ -1,0 +1,6 @@
+diff --color -NaurZ version-0/anchor_below.c version-1/anchor_below.c
+--- version-0/anchor_below.c	2025-08-07 13:46:09.367836988 +0200
++++ version-1/anchor_below.c	2025-08-07 13:46:40.655711631 +0200
+@@ -8,6 +8,8 @@
++  number = 3;
++  result = 0;
